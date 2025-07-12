@@ -23,6 +23,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish(); // 关闭当前 MainActivity
             }
-        }, 3000); // 2000 毫秒 = 2 秒
+        }, 1000); // 2000 毫秒 = 2 秒
     }
 }

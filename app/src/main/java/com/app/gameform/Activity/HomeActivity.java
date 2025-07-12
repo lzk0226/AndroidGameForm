@@ -1,9 +1,12 @@
 package com.app.gameform.Activity;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,6 +27,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     private PostAdapter postAdapter;
     private List<Post> postList;
     private TextView tabHot, tabRecommend, tabFollow, tabNew;
+    private LinearLayout navHome, navDynamic, navAdd, navLike, navProfile;
     private String currentTab = "follow"; // 默认选中关注
 
     @Override
@@ -34,6 +38,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             initViews();
             setupRecyclerView();
             setupTabListeners();
+            setupBottomNavigation();
             loadPostData(currentTab);
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,7 +53,17 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         tabFollow = findViewById(R.id.tab_follow);
         tabNew = findViewById(R.id.tab_new);
 
+        // 底部导航栏
+        navHome = findViewById(R.id.nav_home);
+        navDynamic = findViewById(R.id.nav_dynamic);
+        navAdd = findViewById(R.id.nav_add);
+        navLike = findViewById(R.id.nav_like);
+        navProfile = findViewById(R.id.nav_profile);
+
         postList = new ArrayList<>();
+
+        // 设置主页为选中状态
+        setSelectedNavItem(navHome);
     }
 
     private void setupRecyclerView() {
@@ -81,6 +96,59 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             switchTab("new");
             loadPostData("new");
         });
+    }
+
+    private void setupBottomNavigation() {
+        navHome.setOnClickListener(v -> {
+            // 当前页面，不做任何操作
+        });
+
+        navDynamic.setOnClickListener(v -> {
+            startActivity(new Intent(this, CircleActivity.class));
+            finish();
+        });
+
+        navAdd.setOnClickListener(v -> {
+            startActivity(new Intent(this, AddActivity.class));
+            finish();
+        });
+
+        navLike.setOnClickListener(v -> {
+            startActivity(new Intent(this, NotificationActivity.class));
+            finish();
+        });
+
+        navProfile.setOnClickListener(v -> {
+            startActivity(new Intent(this, ProfileActivity.class));
+            finish();
+        });
+    }
+
+    private void setSelectedNavItem(LinearLayout selectedNav) {
+        // 重置所有导航项
+        resetNavItems();
+
+        // 设置选中项
+        ImageView icon = (ImageView) selectedNav.getChildAt(0);
+        TextView text = (TextView) selectedNav.getChildAt(1);
+
+        icon.setColorFilter(getResources().getColor(android.R.color.black));
+        text.setTextColor(getResources().getColor(android.R.color.black));
+    }
+
+    private void resetNavItems() {
+        resetNavItem(navHome);
+        resetNavItem(navDynamic);
+        resetNavItem(navLike);
+        resetNavItem(navProfile);
+    }
+
+    private void resetNavItem(LinearLayout nav) {
+        ImageView icon = (ImageView) nav.getChildAt(0);
+        TextView text = (TextView) nav.getChildAt(1);
+
+        icon.setColorFilter(getResources().getColor(android.R.color.darker_gray));
+        text.setTextColor(getResources().getColor(android.R.color.darker_gray));
     }
 
     private void switchTab(String tab) {
