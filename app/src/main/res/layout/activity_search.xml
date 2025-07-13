@@ -33,7 +33,7 @@
             android:contentDescription="返回"
             android:focusable="true"
             android:padding="4dp"
-            android:src="@mipmap/ss"
+            android:src="@mipmap/fh"
             app:tint="#333333" />
 
         <!-- 搜索输入框 -->
