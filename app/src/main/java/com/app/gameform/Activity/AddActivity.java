@@ -1,17 +1,14 @@
 package com.app.gameform.Activity;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.app.gameform.R;
+import com.app.gameform.utils.BottomNavigationHelper;
 
 public class AddActivity extends AppCompatActivity {
-    private LinearLayout navHome, navDynamic, navAdd, navLike, navProfile;
+    private BottomNavigationHelper bottomNavigationHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,42 +20,19 @@ public class AddActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        navHome = findViewById(R.id.nav_home);
-        navDynamic = findViewById(R.id.nav_dynamic);
-        navAdd = findViewById(R.id.nav_add);
-        navLike = findViewById(R.id.nav_like);
-        navProfile = findViewById(R.id.nav_profile);
+        // 这里可以初始化发布页面的其他控件
+        // 例如：编辑框、图片选择器、发布按钮等
     }
 
     private void setupBottomNavigation() {
-        // 发布页面的导航栏样式保持不变，因为中间是特殊的圆形按钮
+        // 使用底部导航栏工具类
+        bottomNavigationHelper = new BottomNavigationHelper(this, findViewById(R.id.bottomNavigationInclude));
 
-        navHome.setOnClickListener(v -> {
-            startActivity(new Intent(this, HomeActivity.class));
-            overridePendingTransition(0, 0);
-            finish();
-        });
+        // 设置当前页面为ADD选中状态
+        // 注意：ADD页面的中间按钮是特殊的圆形按钮，通常不需要设置选中状态
+        // 但如果需要可以调用：bottomNavigationHelper.setSelectedItem(BottomNavigationHelper.NavigationItem.ADD);
 
-        navDynamic.setOnClickListener(v -> {
-            startActivity(new Intent(this, CircleActivity.class));
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-        navAdd.setOnClickListener(v -> {
-            // 当前页面，不做任何操作
-        });
-
-        navLike.setOnClickListener(v -> {
-            startActivity(new Intent(this, NotificationActivity.class));
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-        navProfile.setOnClickListener(v -> {
-            startActivity(new Intent(this, ProfileActivity.class));
-            overridePendingTransition(0, 0);
-            finish();
-        });
+        // 由于ADD按钮是特殊的圆形按钮，我们保持其他按钮的默认状态
+        // 工具类会自动处理页面跳转和防止重复跳转
     }
 }
