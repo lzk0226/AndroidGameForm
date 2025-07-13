@@ -40,8 +40,9 @@
             android:clickable="true"
             android:gravity="center"
             android:text="推荐"
-            android:textColor="#999999"
-            android:textSize="16sp" />
+            android:textColor="#333333"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tab_follow"
@@ -52,9 +53,8 @@
             android:clickable="true"
             android:gravity="center"
             android:text="关注"
-            android:textColor="#333333"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textColor="#999999"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/tab_new"

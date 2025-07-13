@@ -4,10 +4,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottomNavigation"
     android:layout_width="match_parent"
-    android:layout_height="60dp"
+    android:layout_height="72dp"
     android:background="@android:color/white"
     android:elevation="8dp"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <LinearLayout
         android:id="@+id/nav_home"
@@ -21,8 +23,8 @@
 
         <ImageView
             android:id="@+id/nav_home_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:src="@mipmap/zy"
             app:tint="#999999" />
 
@@ -30,7 +32,7 @@
             android:id="@+id/nav_home_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:text="主页"
             android:textColor="#999999"
             android:textSize="12sp" />
@@ -49,8 +51,8 @@
 
         <ImageView
             android:id="@+id/nav_dynamic_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:src="@mipmap/qz"
             app:tint="#999999" />
 
@@ -58,7 +60,7 @@
             android:id="@+id/nav_dynamic_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:text="圈子"
             android:textColor="#999999"
             android:textSize="12sp" />
@@ -73,18 +75,19 @@
         android:gravity="center"
         android:orientation="vertical"
         android:clickable="true"
-        android:background="?android:attr/selectableItemBackground">
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="发布">
 
         <androidx.cardview.widget.CardView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            app:cardCornerRadius="20dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardCornerRadius="22dp"
             app:cardBackgroundColor="#007AFF"
             app:cardElevation="4dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:layout_gravity="center"
                 android:src="@mipmap/ft"
                 app:tint="@android:color/white" />
@@ -105,8 +108,8 @@
 
         <ImageView
             android:id="@+id/nav_like_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:src="@mipmap/xx"
             app:tint="#999999" />
 
@@ -114,7 +117,7 @@
             android:id="@+id/nav_like_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:text="通知"
             android:textColor="#999999"
             android:textSize="12sp" />
@@ -133,8 +136,8 @@
 
         <ImageView
             android:id="@+id/nav_profile_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:src="@mipmap/tx"
             app:tint="#999999" />
 
@@ -142,7 +145,7 @@
             android:id="@+id/nav_profile_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:text="我的"
             android:textColor="#999999"
             android:textSize="12sp" />
