@@ -36,21 +36,25 @@ public class ProfileActivity extends AppCompatActivity {
 
         navHome.setOnClickListener(v -> {
             startActivity(new Intent(this, HomeActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navDynamic.setOnClickListener(v -> {
             startActivity(new Intent(this, CircleActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navAdd.setOnClickListener(v -> {
             startActivity(new Intent(this, AddActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navLike.setOnClickListener(v -> {
             startActivity(new Intent(this, NotificationActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 

@@ -35,11 +35,13 @@ public class AddActivity extends AppCompatActivity {
 
         navHome.setOnClickListener(v -> {
             startActivity(new Intent(this, HomeActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navDynamic.setOnClickListener(v -> {
             startActivity(new Intent(this, CircleActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
@@ -49,11 +51,13 @@ public class AddActivity extends AppCompatActivity {
 
         navLike.setOnClickListener(v -> {
             startActivity(new Intent(this, NotificationActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navProfile.setOnClickListener(v -> {
             startActivity(new Intent(this, ProfileActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
     }

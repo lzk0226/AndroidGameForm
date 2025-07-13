@@ -105,21 +105,25 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
 
         navDynamic.setOnClickListener(v -> {
             startActivity(new Intent(this, CircleActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navAdd.setOnClickListener(v -> {
             startActivity(new Intent(this, AddActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navLike.setOnClickListener(v -> {
             startActivity(new Intent(this, NotificationActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navProfile.setOnClickListener(v -> {
             startActivity(new Intent(this, ProfileActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
     }

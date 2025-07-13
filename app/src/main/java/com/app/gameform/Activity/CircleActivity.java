@@ -36,6 +36,7 @@ public class CircleActivity extends AppCompatActivity {
 
         navHome.setOnClickListener(v -> {
             startActivity(new Intent(this, HomeActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
@@ -45,16 +46,19 @@ public class CircleActivity extends AppCompatActivity {
 
         navAdd.setOnClickListener(v -> {
             startActivity(new Intent(this, AddActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navLike.setOnClickListener(v -> {
             startActivity(new Intent(this, NotificationActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navProfile.setOnClickListener(v -> {
             startActivity(new Intent(this, ProfileActivity.class));
+            overridePendingTransition(0, 0);
             finish();
         });
     }
