@@ -34,6 +34,8 @@
             android:name=".Activity.ProfileActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+        <activity android:name=".Activity.SearchActivity"
+            android:exported="false"/>
         <activity
             android:name=".Activity.MainActivity"
             android:exported="true">

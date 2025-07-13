@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按压状态 -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="45"
+                android:startColor="#FF6B35"
+                android:centerColor="#FF8E53"
+                android:endColor="#FFB871"
+                android:type="linear" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+    
+    <!-- 正常状态 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="45"
+                android:startColor="#007AFF"
+                android:centerColor="#4A90E2"
+                android:endColor="#7BB3FF"
+                android:type="linear" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+</selector>

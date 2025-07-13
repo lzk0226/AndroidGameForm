@@ -28,6 +28,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     private PostAdapter postAdapter;
     private List<Post> postList;
     private TextView tabHot, tabRecommend, tabFollow, tabNew;
+    private ImageView iconSearch;
     private BottomNavigationHelper bottomNavigationHelper;
     private String currentTab = "follow"; // 默认选中关注
 
@@ -39,6 +40,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             initViews();
             setupRecyclerView();
             setupTabListeners();
+            setupSearchListener();
             setupBottomNavigation();
             loadPostData(currentTab);
         } catch (Exception e) {
@@ -53,6 +55,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         tabRecommend = findViewById(R.id.tab_recommend);
         tabFollow = findViewById(R.id.tab_follow);
         tabNew = findViewById(R.id.tab_new);
+        iconSearch = findViewById(R.id.icon_search);
 
         postList = new ArrayList<>();
     }
@@ -86,6 +89,14 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         tabNew.setOnClickListener(v -> {
             switchTab("new");
             loadPostData("new");
+        });
+    }
+
+    private void setupSearchListener() {
+        iconSearch.setOnClickListener(v -> {
+            // 跳转到搜索页面
+            Intent intent = new Intent(this, SearchActivity.class);
+            startActivity(intent);
         });
     }
 
