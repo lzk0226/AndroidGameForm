@@ -22,27 +22,33 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- 返回按钮 -->
-        <ImageView
-            android:id="@+id/btn_back"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+        <!-- 返回按钮 - 增加触摸目标尺寸 -->
+        <FrameLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginEnd="12dp"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
-            android:contentDescription="返回"
-            android:focusable="true"
-            android:padding="4dp"
-            android:src="@mipmap/fh"
-            app:tint="#333333" />
+            android:focusable="true">
 
-        <!-- 搜索输入框 -->
+            <ImageView
+                android:id="@+id/btn_back"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:contentDescription="返回"
+                android:src="@mipmap/fh"
+                app:tint="#333333" />
+
+        </FrameLayout>
+
+        <!-- 搜索输入框 - 增加高度到48dp -->
         <androidx.cardview.widget.CardView
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginEnd="12dp"
-            app:cardCornerRadius="18dp"
+            app:cardCornerRadius="24dp"
             app:cardBackgroundColor="#F5F5F5"
             app:cardElevation="0dp">
 
@@ -59,22 +65,23 @@
                 android:paddingEnd="16dp"
                 android:singleLine="true"
                 android:imeOptions="actionSearch"
-                android:inputType="text" />
+                android:inputType="text"
+                android:minHeight="48dp" />
 
         </androidx.cardview.widget.CardView>
 
-        <!-- 搜索按钮 -->
+        <!-- 搜索按钮 - 增加触摸目标尺寸 -->
         <TextView
             android:id="@+id/btn_search"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
+            android:minWidth="48dp"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
+            android:gravity="center"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:text="搜索"
             android:textColor="#007AFF"
             android:textSize="16sp"
@@ -127,17 +134,18 @@
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
+                    <!-- 清空按钮 - 增加触摸目标尺寸 -->
                     <TextView
                         android:id="@+id/btn_clear_history"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
+                        android:minWidth="48dp"
                         android:background="?android:attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
-                        android:paddingStart="6dp"
-                        android:paddingEnd="6dp"
-                        android:paddingTop="2dp"
-                        android:paddingBottom="2dp"
+                        android:gravity="center"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
                         android:text="清空"
                         android:textColor="#999999"
                         android:textSize="12sp" />
@@ -170,7 +178,7 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <!-- 热门搜索第一行 -->
+                <!-- 热门搜索第一行 - 增加触摸目标尺寸 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -180,7 +188,7 @@
                     <TextView
                         android:id="@+id/hot_search_1"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
                         android:gravity="center"
@@ -195,7 +203,7 @@
                     <TextView
                         android:id="@+id/hot_search_2"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
                         android:gravity="center"
@@ -210,7 +218,7 @@
                     <TextView
                         android:id="@+id/hot_search_3"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:gravity="center"
                         android:text="Top3 元宇宙"
@@ -223,7 +231,7 @@
 
                 </LinearLayout>
 
-                <!-- 热门搜索第二行 -->
+                <!-- 热门搜索第二行 - 增加触摸目标尺寸 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -232,7 +240,7 @@
                     <TextView
                         android:id="@+id/hot_search_4"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
                         android:gravity="center"
@@ -247,7 +255,7 @@
                     <TextView
                         android:id="@+id/hot_search_5"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
                         android:gravity="center"
@@ -262,7 +270,7 @@
                     <TextView
                         android:id="@+id/hot_search_6"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
                         android:gravity="center"
                         android:text="Top6 大数据"
