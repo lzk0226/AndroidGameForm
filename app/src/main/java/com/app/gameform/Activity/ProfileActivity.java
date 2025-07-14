@@ -193,7 +193,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         // 注册时间
         if (user.getCreateTime() != null) {
-            tvJoinDate.setText("注册时间：" + user.getCreateTime());
+            tvJoinDate.setText(" "+user.getCreateTime());
         } else {
             tvJoinDate.setText("注册时间：未知");
         }
