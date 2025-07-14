@@ -324,7 +324,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:layout_marginEnd="12dp"
-                            android:src="@mipmap/lll"
+                            android:src="@mipmap/hot"
                             app:tint="#FF6B35" />
 
                         <TextView
@@ -364,8 +364,8 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:layout_marginEnd="12dp"
-                            android:src="@mipmap/lll"
-                            app:tint="#007AFF" />
+                            android:src="@mipmap/hot"
+                            app:tint="#F89B53" />
 
                         <TextView
                             android:layout_width="0dp"
