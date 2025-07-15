@@ -6,6 +6,7 @@
     android:orientation="vertical"
     android:padding="8dp">
 
+    <!-- 主评论区域 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -25,19 +26,19 @@
             android:text="用户名"
             android:textColor="#333333"
             android:textSize="14sp"
-            android:layout_marginStart="8dp"/>
+            android:layout_marginStart="8dp" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="1" />
 
         <ImageView
             android:id="@+id/iv_like"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@mipmap/dz"
-            app:tint="#999999"/>
+            app:tint="#999999" />
 
         <TextView
             android:id="@+id/tv_like_count"
@@ -46,9 +47,10 @@
             android:text="0"
             android:textSize="12sp"
             android:textColor="#999999"
-            android:layout_marginStart="4dp"/>
+            android:layout_marginStart="4dp" />
     </LinearLayout>
 
+    <!-- 主评论内容 -->
     <TextView
         android:id="@+id/tv_comment_content"
         android:layout_width="match_parent"
@@ -57,5 +59,43 @@
         android:textColor="#333333"
         android:textSize="14sp"
         android:layout_marginTop="4dp"
-        android:layout_marginStart="40dp"/>
+        android:layout_marginStart="40dp" />
+
+    <!-- 回复按钮 -->
+    <TextView
+        android:id="@+id/tv_reply"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="回复"
+        android:textColor="#666666"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"
+        android:layout_marginStart="40dp"
+        android:padding="4dp"
+        android:background="?android:attr/selectableItemBackground" />
+
+    <!-- 子评论容器 -->
+    <LinearLayout
+        android:id="@+id/ll_replies_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:visibility="gone" />
+
+    <!-- 展开/收起回复按钮 -->
+    <TextView
+        android:id="@+id/tv_expand_replies"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="展开更多回复"
+        android:textColor="#3F51B5"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"
+        android:layout_marginStart="40dp"
+        android:padding="4dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:visibility="gone" />
+
 </LinearLayout>

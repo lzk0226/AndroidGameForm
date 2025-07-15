@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/reply_background"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/iv_reply_user_avatar"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@mipmap/ic_launcher_round" />
+
+        <TextView
+            android:id="@+id/tv_reply_user_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="用户名"
+            android:textColor="#333333"
+            android:textSize="11sp"
+            android:layout_marginStart="6dp" />
+
+        <TextView
+            android:id="@+id/tv_reply_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2025/5/23"
+            android:textColor="#999999"
+            android:textSize="10sp"
+            android:layout_marginStart="8dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_reply_like_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="点赞3"
+            android:textSize="10sp"
+            android:textColor="#999999"
+            android:layout_marginEnd="4dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_reply_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="回复内容..."
+        android:textColor="#333333"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/tv_reply_expand"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="展开"
+        android:textColor="#3F51B5"
+        android:textSize="10sp"
+        android:layout_marginTop="2dp"
+        android:padding="2dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tv_reply_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="回复"
+        android:textColor="#666666"
+        android:textSize="10sp"
+        android:layout_marginTop="4dp"
+        android:padding="4dp"
+        android:background="?android:attr/selectableItemBackground" />
+
+</LinearLayout>

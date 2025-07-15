@@ -8,16 +8,16 @@ import static com.app.gameform.network.ApiConstants.USER_POST_COMMENT;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
 import com.app.gameform.domain.Comment;
@@ -53,18 +53,16 @@ public class PostDetailActivity extends AppCompatActivity {
     private CircleImageView ivUserAvatar;
     private EditText etCommentInput;
     private ScrollView scrollContent;
-    private RecyclerView rvComments;
+    private LinearLayout layoutCommentsContainer;
 
     private Post currentPost;
     private int postId;
     private String authToken;
-    private CommentAdapter commentAdapter;
     private List<Comment> commentList = new ArrayList<>();
     private OkHttpClient client = new OkHttpClient();
     private Gson gson = new GsonBuilder()
             .setDateFormat("yyyy-MM-dd HH:mm:ss")
             .create();
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +86,6 @@ public class PostDetailActivity extends AppCompatActivity {
         ivImage = findViewById(R.id.iv_post_image);
         ImageView ivBack = findViewById(R.id.iv_back);
 
-
         tvLikeCount = findViewById(R.id.tv_like_count);
         tvCommentCount = findViewById(R.id.tv_comment_count);
         tvShareCount = findViewById(R.id.tv_share_count);
@@ -96,10 +93,7 @@ public class PostDetailActivity extends AppCompatActivity {
         etCommentInput = findViewById(R.id.et_comment_input);
         ivSend = findViewById(R.id.iv_send_comment);
 
-        rvComments = findViewById(R.id.rv_comments);
-        rvComments.setLayoutManager(new LinearLayoutManager(this));
-        commentAdapter = new CommentAdapter(commentList, this::onCommentLikeClicked);
-        rvComments.setAdapter(commentAdapter);
+        layoutCommentsContainer = findViewById(R.id.layout_comments_container);
     }
 
     private void initData() {
@@ -119,7 +113,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void loadPostDetail() {
-        String url = USER_POST+ postId;
+        String url = USER_POST + postId;
 
         Request request = new Request.Builder()
                 .url(url)
@@ -175,7 +169,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void loadComments() {
-        String url = USER_POST_COMMENT+ postId;
+        String url = USER_POST_COMMENT + postId;
 
         Request request = new Request.Builder()
                 .url(url)
@@ -198,11 +192,52 @@ public class PostDetailActivity extends AppCompatActivity {
                     if (apiResponse != null && apiResponse.isSuccess()) {
                         commentList.clear();
                         commentList.addAll(apiResponse.getData());
-                        runOnUiThread(() -> commentAdapter.notifyDataSetChanged());
+                        runOnUiThread(() -> updateCommentsUI());
                     }
                 }
             }
         });
+    }
+
+    private void updateCommentsUI() {
+        // 清空原有评论视图
+        layoutCommentsContainer.removeAllViews();
+
+        // 动态添加评论视图
+        for (Comment comment : commentList) {
+            View commentView = createCommentView(comment);
+            layoutCommentsContainer.addView(commentView);
+        }
+    }
+
+    private View createCommentView(Comment comment) {
+        View commentView = LayoutInflater.from(this).inflate(R.layout.activity_item_comment, null);
+
+        CircleImageView ivUserAvatar = commentView.findViewById(R.id.iv_user_avatar);
+        TextView tvUserName = commentView.findViewById(R.id.tv_user_name);
+        TextView tvCommentContent = commentView.findViewById(R.id.tv_comment_content);
+        ImageView ivLike = commentView.findViewById(R.id.iv_like);
+        TextView tvLikeCount = commentView.findViewById(R.id.tv_like_count);
+
+        // 设置评论数据
+        tvUserName.setText(comment.getNickName());
+        tvCommentContent.setText(HtmlUtils.removeHtmlTags(comment.getCommentContent()));
+        tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
+
+        // 加载用户头像
+        ImageUtils.loadUserAvatar(this, ivUserAvatar, comment.getUserAvatar());
+
+        // 设置点赞状态
+        if (comment.getHasLiked() != null && comment.getHasLiked()) {
+            ivLike.setImageResource(R.mipmap.dz);
+        } else {
+            ivLike.setImageResource(R.mipmap.dz);
+        }
+
+        // 点赞点击事件
+        ivLike.setOnClickListener(v -> onCommentLikeClicked(comment));
+
+        return commentView;
     }
 
     private void sendComment() {
@@ -279,7 +314,7 @@ public class PostDetailActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         comment.setHasLiked(true);
                         comment.setLikeCount(comment.getLikeCount() + 1);
-                        commentAdapter.notifyDataSetChanged();
+                        updateCommentsUI();
                     });
                 }
             }
@@ -307,7 +342,7 @@ public class PostDetailActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         comment.setHasLiked(false);
                         comment.setLikeCount(comment.getLikeCount() - 1);
-                        commentAdapter.notifyDataSetChanged();
+                        updateCommentsUI();
                     });
                 }
             }
