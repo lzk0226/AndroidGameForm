@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.app.gameform.R;
 import com.app.gameform.domain.Comment;
 import com.app.gameform.domain.Post;
+import com.app.gameform.utils.HtmlUtils;
 import com.app.gameform.utils.ImageUtils;
 import com.app.gameform.utils.SharedPrefManager;
 import com.google.gson.Gson;
@@ -144,7 +145,7 @@ public class PostDetailActivity extends AppCompatActivity {
         if (currentPost == null) return;
 
         tvPostTitle.setText(currentPost.getPostTitle());
-        tvContent.setText(currentPost.getPostContent());
+        tvContent.setText(HtmlUtils.removeHtmlTags(currentPost.getPostContent()));
         tvUserName.setText(currentPost.getNickName());
         tvTime.setText("刚刚"); // 实际应用中应格式化时间
 

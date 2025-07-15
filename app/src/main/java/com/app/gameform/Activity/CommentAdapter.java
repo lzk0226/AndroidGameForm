@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
 import com.app.gameform.domain.Comment;
+import com.app.gameform.utils.HtmlUtils;
 import com.app.gameform.utils.ImageUtils;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         Comment comment = commentList.get(position);
 
         holder.tvUserName.setText(comment.getNickName());
-        holder.tvCommentContent.setText(comment.getCommentContent());
+        holder.tvCommentContent.setText(HtmlUtils.removeHtmlTags(comment.getCommentContent()));
         holder.tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
 
         // 加载用户头像

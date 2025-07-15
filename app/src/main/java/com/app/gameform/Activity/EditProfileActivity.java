@@ -1,7 +1,6 @@
 package com.app.gameform.Activity;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -15,14 +14,10 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.app.gameform.R;
 import com.app.gameform.domain.User;
-import com.app.gameform.network.ApiCallback;
-import com.app.gameform.network.UserApiService;
-
-import java.util.regex.Pattern;
+import com.app.gameform.manager.UserManager;
 
 public class EditProfileActivity extends AppCompatActivity {
-    private SharedPreferences sharedPreferences;
-    private UserApiService userApiService;
+    private UserManager userManager;
     private User currentUser;
 
     // UI组件
@@ -34,15 +29,6 @@ public class EditProfileActivity extends AppCompatActivity {
     private EditText etPhone;
     private Button btnSave;
     private Button btnChangePassword;
-
-    // 常量
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_TOKEN = "token";
-    private static final String KEY_USER_ID = "user_id";
-
-    // 邮箱和手机号验证正则表达式
-    private static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
-    private static final String PHONE_PATTERN = "^1[3-9]\\d{9}$";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,8 +56,7 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void initServices() {
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        userApiService = UserApiService.getInstance();
+        userManager = UserManager.getInstance(this);
     }
 
     private void setupToolbar() {
@@ -84,17 +69,7 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void loadUserData() {
-        long userId = sharedPreferences.getLong(KEY_USER_ID, 0);
-        String token = sharedPreferences.getString(KEY_TOKEN, "");
-
-        if (userId == 0 || TextUtils.isEmpty(token)) {
-            Toast.makeText(this, "用户信息异常，请重新登录", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
-        // 从API获取用户信息
-        userApiService.getUserInfo(userId, token, new ApiCallback<User>() {
+        userManager.getUserInfo(new UserManager.UserInfoCallback() {
             @Override
             public void onSuccess(User user) {
                 runOnUiThread(() -> {
@@ -106,7 +81,7 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onError(String error) {
                 runOnUiThread(() -> {
-                    Toast.makeText(EditProfileActivity.this, "获取用户信息失败：" + error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(EditProfileActivity.this, error, Toast.LENGTH_SHORT).show();
                     finish();
                 });
             }
@@ -153,8 +128,39 @@ public class EditProfileActivity extends AppCompatActivity {
         String phone = etPhone.getText().toString().trim();
         String gender = getSelectedGender();
 
-        // 直接调用更新接口，让后端处理所有验证逻辑
-        updateUserProfile(nickname, gender, email, phone);
+        btnSave.setEnabled(false);
+        btnSave.setText("保存中...");
+
+        userManager.updateProfile(nickname, gender, email, phone, new UserManager.UserOperationCallback() {
+            @Override
+            public void onSuccess(String message) {
+                runOnUiThread(() -> {
+                    Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_SHORT).show();
+                    currentUser.setNickName(nickname);
+                    currentUser.setSex(gender);
+                    currentUser.setEmail(TextUtils.isEmpty(email) ? null : email);
+                    currentUser.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
+                    setResult(RESULT_OK);
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(EditProfileActivity.this, error, Toast.LENGTH_SHORT).show();
+                    btnSave.setEnabled(true);
+                    btnSave.setText("保存");
+                    if (error.contains("邮箱")) {
+                        etEmail.setError("该邮箱已被使用");
+                        etEmail.requestFocus();
+                    } else if (error.contains("手机号")) {
+                        etPhone.setError("该手机号已被使用");
+                        etPhone.requestFocus();
+                    }
+                });
+            }
+        });
     }
 
     private boolean validateInput() {
@@ -163,30 +169,17 @@ public class EditProfileActivity extends AppCompatActivity {
         String phone = etPhone.getText().toString().trim();
 
         // 昵称不能为空
-        if (TextUtils.isEmpty(nickname)) {
-            etNickname.setError("昵称不能为空");
-            etNickname.requestFocus();
-            return false;
-        }
-
-        // 昵称长度检查
-        if (nickname.length() < 2 || nickname.length() > 20) {
-            etNickname.setError("昵称长度应在2-20个字符之间");
-            etNickname.requestFocus();
+        if (!userManager.validateNickname(nickname, etNickname)) {
             return false;
         }
 
         // 邮箱格式检查（如果不为空）
-        if (!TextUtils.isEmpty(email) && !Pattern.matches(EMAIL_PATTERN, email)) {
-            etEmail.setError("邮箱格式不正确");
-            etEmail.requestFocus();
+        if (!userManager.validateEmail(email, etEmail)) {
             return false;
         }
 
         // 手机号格式检查（如果不为空）
-        if (!TextUtils.isEmpty(phone) && !Pattern.matches(PHONE_PATTERN, phone)) {
-            etPhone.setError("手机号格式不正确");
-            etPhone.requestFocus();
+        if (!userManager.validatePhone(phone, etPhone)) {
             return false;
         }
 
@@ -204,82 +197,8 @@ public class EditProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void updateUserProfile(String nickname, String gender, String email, String phone) {
-        String token = sharedPreferences.getString(KEY_TOKEN, "");
-
-        // 创建更新的用户对象
-        User updateUser = new User();
-        updateUser.setUserId(currentUser.getUserId());
-        updateUser.setNickName(nickname);
-        updateUser.setSex(gender);
-        updateUser.setEmail(TextUtils.isEmpty(email) ? null : email);
-        updateUser.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
-
-        // 设置按钮状态
-        btnSave.setEnabled(false);
-        btnSave.setText("保存中...");
-
-        userApiService.updateProfile(updateUser, token, new ApiCallback<String>() {
-            @Override
-            public void onSuccess(String result) {
-                runOnUiThread(() -> {
-                    Toast.makeText(EditProfileActivity.this, "个人信息更新成功", Toast.LENGTH_SHORT).show();
-
-                    // 更新本地用户信息
-                    currentUser.setNickName(nickname);
-                    currentUser.setSex(gender);
-                    currentUser.setEmail(TextUtils.isEmpty(email) ? null : email);
-                    currentUser.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
-
-                    // 可以选择将更新后的用户信息保存到SharedPreferences
-                    saveUserInfoToPrefs(currentUser);
-
-                    setResult(RESULT_OK);
-                    finish();
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() -> {
-                    Toast.makeText(EditProfileActivity.this, "更新失败：" + error, Toast.LENGTH_SHORT).show();
-
-                    // 恢复按钮状态
-                    btnSave.setEnabled(true);
-                    btnSave.setText("保存");
-
-                    // 根据错误信息设置对应的错误提示
-                    if (error.contains("邮箱")) {
-                        etEmail.setError("该邮箱已被使用");
-                        etEmail.requestFocus();
-                    } else if (error.contains("手机号")) {
-                        etPhone.setError("该手机号已被使用");
-                        etPhone.requestFocus();
-                    }
-                });
-            }
-        });
-    }
-
-    private void saveUserInfoToPrefs(User user) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("user_nickname", user.getNickName());
-        editor.putString("user_sex", user.getSex());
-        editor.putString("user_email", user.getEmail());
-        editor.putString("user_phone", user.getPhonenumber());
-        editor.apply();
-    }
-
     private void openChangePasswordDialog() {
         Intent intent = new Intent(this, ChangePasswordActivity.class);
         startActivity(intent);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (userApiService != null) {
-            userApiService.cancelAllRequests();
-        }
     }
 }

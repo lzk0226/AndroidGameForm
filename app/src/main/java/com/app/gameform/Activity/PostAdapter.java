@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
 import com.app.gameform.domain.Post;
+import com.app.gameform.utils.HtmlUtils;
 import com.app.gameform.utils.ImageUtils;
 
 import java.text.SimpleDateFormat;
@@ -77,7 +78,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         // 设置发帖时间
         holder.tvTime.setText(formatTime(post.getCreateTime()));
         // 设置帖子内容 - 处理富文本标签
-        holder.tvContent.setText(removeHtmlTags(post.getPostContent()));
+        holder.tvContent.setText(HtmlUtils.removeHtmlTags(post.getPostContent()));
         // 使用工具类加载帖子图片
         loadPostImage(holder.ivPostImage, holder.cvImage, post.getPhoto());
         // 设置互动数据
@@ -110,49 +111,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return String.format("%.0fw", viewCount / 10000.0);
         }
     }
-    /**
-     * 移除HTML标签，只保留纯文本
-     * @param htmlContent 包含HTML标签的内容
-     * @return 纯文本内容
-     */
-    private String removeHtmlTags(String htmlContent) {
-        if (TextUtils.isEmpty(htmlContent)) {
-            return "";
-        }
-        // 方法1：使用 Html.fromHtml() 去除HTML标签
-        String plainText;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString();
-        } else {
-            plainText = Html.fromHtml(htmlContent).toString();
-        }
-        // 去除多余的空行和空格
-        plainText = plainText.replaceAll("\\n\\s*\\n", "\n").trim();
-
-        return plainText;
-    }
-    /**
-     * 备用方法：使用正则表达式移除HTML标签
-     * 如果上面的方法不满足需求，可以使用这个方法
-     */
-    private String removeHtmlTagsRegex(String htmlContent) {
-        if (TextUtils.isEmpty(htmlContent)) {
-            return "";
-        }
-        // 移除所有HTML标签
-        String plainText = htmlContent.replaceAll("<[^>]*>", "");
-        // 处理HTML实体字符
-        plainText = plainText.replace("&nbsp;", " ");
-        plainText = plainText.replace("&lt;", "<");
-        plainText = plainText.replace("&gt;", ">");
-        plainText = plainText.replace("&amp;", "&");
-        plainText = plainText.replace("&quot;", "\"");
-        plainText = plainText.replace("&#39;", "'");
-        // 去除多余的空行和空格
-        plainText = plainText.replaceAll("\\n\\s*\\n", "\n").trim();
-        return plainText;
-    }
-
     private void loadPostImage(ImageView imageView, CardView cardView, String photoUrl) {
         if (photoUrl != null && !photoUrl.isEmpty()) {
             cardView.setVisibility(View.VISIBLE);

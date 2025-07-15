@@ -1,6 +1,5 @@
 package com.app.gameform.Activity;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -11,12 +10,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.app.gameform.R;
-import com.app.gameform.network.ApiCallback;
-import com.app.gameform.network.UserApiService;
+import com.app.gameform.manager.UserManager;
 
 public class ChangePasswordActivity extends AppCompatActivity {
-    private SharedPreferences sharedPreferences;
-    private UserApiService userApiService;
+    private UserManager userManager;
 
     // UI组件
     private Toolbar toolbar;
@@ -24,11 +21,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
     private EditText etNewPassword;
     private EditText etConfirmPassword;
     private Button btnChangePassword;
-
-    // 常量
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_TOKEN = "token";
-    private static final String KEY_USER_ID = "user_id";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,8 +42,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
     }
 
     private void initServices() {
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        userApiService = UserApiService.getInstance();
+        userManager = UserManager.getInstance(this);
     }
 
     private void setupToolbar() {
@@ -74,26 +65,15 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
         String oldPassword = etOldPassword.getText().toString().trim();
         String newPassword = etNewPassword.getText().toString().trim();
-        long userId = sharedPreferences.getLong(KEY_USER_ID, 0);
-        String token = sharedPreferences.getString(KEY_TOKEN, "");
-
-        if (userId == 0 || TextUtils.isEmpty(token)) {
-            Toast.makeText(this, "用户信息异常，请重新登录", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
 
         btnChangePassword.setEnabled(false);
         btnChangePassword.setText("修改中...");
 
-        UserApiService.UpdatePasswordRequest request = new UserApiService.UpdatePasswordRequest(
-                userId, oldPassword, newPassword);
-
-        userApiService.updatePassword(request, token, new ApiCallback<String>() {
+        userManager.changePassword(oldPassword, newPassword, new UserManager.UserOperationCallback() {
             @Override
-            public void onSuccess(String result) {
+            public void onSuccess(String message) {
                 runOnUiThread(() -> {
-                    Toast.makeText(ChangePasswordActivity.this, "密码修改成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ChangePasswordActivity.this, message, Toast.LENGTH_SHORT).show();
                     finish();
                 });
             }
@@ -101,7 +81,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
             @Override
             public void onError(String error) {
                 runOnUiThread(() -> {
-                    Toast.makeText(ChangePasswordActivity.this, "修改失败：" + error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ChangePasswordActivity.this, error, Toast.LENGTH_SHORT).show();
                     btnChangePassword.setEnabled(true);
                     btnChangePassword.setText("确认修改");
                 });
@@ -157,13 +137,5 @@ public class ChangePasswordActivity extends AppCompatActivity {
         }
 
         return true;
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (userApiService != null) {
-            userApiService.cancelAllRequests();
-        }
     }
 }
