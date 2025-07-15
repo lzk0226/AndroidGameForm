@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
@@ -154,39 +153,8 @@ public class EditProfileActivity extends AppCompatActivity {
         String phone = etPhone.getText().toString().trim();
         String gender = getSelectedGender();
 
-        // 检查邮箱是否有变化
-        boolean emailChanged = false;
-        if (!TextUtils.isEmpty(email)) {
-            String currentEmail = currentUser.getEmail();
-            emailChanged = !email.equals(currentEmail);
-        }
-
-        // 检查手机号是否有变化
-        boolean phoneChanged;
-        if (!TextUtils.isEmpty(phone)) {
-            String currentPhone = currentUser.getPhonenumber();
-            phoneChanged = !phone.equals(currentPhone);
-        } else {
-            phoneChanged = false;
-        }
-
-        // 只有在邮箱发生变化时才检查邮箱唯一性
-        if (emailChanged) {
-            checkEmailUniqueness(email, () -> {
-                // 只有在手机号发生变化时才检查手机号唯一性
-                if (phoneChanged) {
-                    checkPhoneUniqueness(phone, () -> updateUserProfile(nickname, gender, email, phone));
-                } else {
-                    updateUserProfile(nickname, gender, email, phone);
-                }
-            });
-        } else if (phoneChanged) {
-            // 邮箱没变化，但手机号变化了
-            checkPhoneUniqueness(phone, () -> updateUserProfile(nickname, gender, email, phone));
-        } else {
-            // 邮箱和手机号都没有变化，直接更新
-            updateUserProfile(nickname, gender, email, phone);
-        }
+        // 直接调用更新接口，让后端处理所有验证逻辑
+        updateUserProfile(nickname, gender, email, phone);
     }
 
     private boolean validateInput() {
@@ -236,52 +204,6 @@ public class EditProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void checkEmailUniqueness(String email, Runnable onSuccess) {
-        userApiService.checkEmailUnique(email, new ApiCallback<Boolean>() {
-            @Override
-            public void onSuccess(Boolean isUnique) {
-                runOnUiThread(() -> {
-                    if (isUnique) {
-                        onSuccess.run();
-                    } else {
-                        etEmail.setError("该邮箱已被使用");
-                        etEmail.requestFocus();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() -> {
-                    Toast.makeText(EditProfileActivity.this, "邮箱验证失败：" + error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
-    }
-
-    private void checkPhoneUniqueness(String phone, Runnable onSuccess) {
-        userApiService.checkPhoneUnique(phone, new ApiCallback<Boolean>() {
-            @Override
-            public void onSuccess(Boolean isUnique) {
-                runOnUiThread(() -> {
-                    if (isUnique) {
-                        onSuccess.run();
-                    } else {
-                        etPhone.setError("该手机号已被使用");
-                        etPhone.requestFocus();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() -> {
-                    Toast.makeText(EditProfileActivity.this, "手机号验证失败：" + error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
-    }
-
     private void updateUserProfile(String nickname, String gender, String email, String phone) {
         String token = sharedPreferences.getString(KEY_TOKEN, "");
 
@@ -293,6 +215,7 @@ public class EditProfileActivity extends AppCompatActivity {
         updateUser.setEmail(TextUtils.isEmpty(email) ? null : email);
         updateUser.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
 
+        // 设置按钮状态
         btnSave.setEnabled(false);
         btnSave.setText("保存中...");
 
@@ -301,6 +224,16 @@ public class EditProfileActivity extends AppCompatActivity {
             public void onSuccess(String result) {
                 runOnUiThread(() -> {
                     Toast.makeText(EditProfileActivity.this, "个人信息更新成功", Toast.LENGTH_SHORT).show();
+
+                    // 更新本地用户信息
+                    currentUser.setNickName(nickname);
+                    currentUser.setSex(gender);
+                    currentUser.setEmail(TextUtils.isEmpty(email) ? null : email);
+                    currentUser.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
+
+                    // 可以选择将更新后的用户信息保存到SharedPreferences
+                    saveUserInfoToPrefs(currentUser);
+
                     setResult(RESULT_OK);
                     finish();
                 });
@@ -310,11 +243,31 @@ public class EditProfileActivity extends AppCompatActivity {
             public void onError(String error) {
                 runOnUiThread(() -> {
                     Toast.makeText(EditProfileActivity.this, "更新失败：" + error, Toast.LENGTH_SHORT).show();
+
+                    // 恢复按钮状态
                     btnSave.setEnabled(true);
                     btnSave.setText("保存");
+
+                    // 根据错误信息设置对应的错误提示
+                    if (error.contains("邮箱")) {
+                        etEmail.setError("该邮箱已被使用");
+                        etEmail.requestFocus();
+                    } else if (error.contains("手机号")) {
+                        etPhone.setError("该手机号已被使用");
+                        etPhone.requestFocus();
+                    }
                 });
             }
         });
+    }
+
+    private void saveUserInfoToPrefs(User user) {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("user_nickname", user.getNickName());
+        editor.putString("user_sex", user.getSex());
+        editor.putString("user_email", user.getEmail());
+        editor.putString("user_phone", user.getPhonenumber());
+        editor.apply();
     }
 
     private void openChangePasswordDialog() {
