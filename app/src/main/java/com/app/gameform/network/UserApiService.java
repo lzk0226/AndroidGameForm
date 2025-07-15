@@ -1,8 +1,9 @@
 package com.app.gameform.network;
 
+import static com.app.gameform.network.ApiConstants.USER_PROFILE;
+
 import com.app.gameform.Run.ApiResponse;
 import com.app.gameform.domain.User;
-import com.app.gameform.emuns.ResultCodeEnum;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -30,7 +31,7 @@ public class UserApiService {
     private Gson gson;
 
     // 基础URL，根据实际情况修改
-    private static final String BASE_URL = "http://10.0.2.2:8080/user/profile";
+    private static final String BASE_URL = USER_PROFILE;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private UserApiService() {

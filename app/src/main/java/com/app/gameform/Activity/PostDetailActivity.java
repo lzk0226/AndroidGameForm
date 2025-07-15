@@ -1,5 +1,10 @@
 package com.app.gameform.Activity;
 
+import static com.app.gameform.network.ApiConstants.USER_COMMENT;
+import static com.app.gameform.network.ApiConstants.USER_COMMENT_LIKE;
+import static com.app.gameform.network.ApiConstants.USER_POST;
+import static com.app.gameform.network.ApiConstants.USER_POST_COMMENT;
+
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -114,7 +119,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void loadPostDetail() {
-        String url = "http://10.0.2.2:8080/user/post/" + postId;
+        String url = USER_POST+ postId;
 
         Request request = new Request.Builder()
                 .url(url)
@@ -170,7 +175,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void loadComments() {
-        String url = "http://10.0.2.2:8080/user/comment/post/" + postId;
+        String url = USER_POST_COMMENT+ postId;
 
         Request request = new Request.Builder()
                 .url(url)
@@ -211,7 +216,7 @@ public class PostDetailActivity extends AppCompatActivity {
         comment.setPostId(postId);
         comment.setCommentContent(content);
 
-        String url = "http://10.0.2.2:8080/user/comment";
+        String url = USER_COMMENT;
         String jsonBody = gson.toJson(comment);
 
         RequestBody body = RequestBody.create(JSON, jsonBody);
@@ -254,7 +259,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void likeComment(Comment comment) {
-        String url = "http://10.0.2.2:8080/user/comment/like/" + comment.getCommentId();
+        String url = USER_COMMENT_LIKE + comment.getCommentId();
 
         Request request = new Request.Builder()
                 .url(url)
@@ -282,7 +287,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void unlikeComment(Comment comment) {
-        String url = "http://10.0.2.2:8080/user/comment/like/" + comment.getCommentId();
+        String url = USER_COMMENT_LIKE + comment.getCommentId();
 
         Request request = new Request.Builder()
                 .url(url)

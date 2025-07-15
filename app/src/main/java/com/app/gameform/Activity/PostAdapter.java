@@ -82,12 +82,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         // 使用工具类加载帖子图片
         loadPostImage(holder.ivPostImage, holder.cvImage, post.getPhoto());
         // 设置互动数据
-        holder.tvCommentCount.setText(String.format("评论 %d",
+        holder.tvCommentCount.setText(String.format("%d",
                 post.getCommentCount() != null ? post.getCommentCount() : 0));
-        holder.tvLikeCount.setText(String.format("点赞 %d",
+        holder.tvLikeCount.setText(String.format("%d",
                 post.getLikeCount() != null ? post.getLikeCount() : 0));
         // 修改：显示浏览量而不是分享
-        holder.tvViewCount.setText(String.format("浏览 %s",
+        holder.tvViewCount.setText(String.format("%s",
                 formatViewCount(post.getViewCount() != null ? post.getViewCount() : 0)));
         // 设置点击监听器
         setupClickListeners(holder, post, position);

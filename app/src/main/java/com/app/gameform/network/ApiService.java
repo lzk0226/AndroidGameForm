@@ -52,6 +52,7 @@ public class ApiService {
      * 获取帖子列表
      */
     public void getPosts(String url, ApiCallback<List<Post>> callback) {
+        // 这里的url应该是完整的相对路径，不需要再拼接BASE_URL
         Request request = new Request.Builder()
                 .url(url)
                 .build();
@@ -93,7 +94,7 @@ public class ApiService {
      * 点赞帖子
      */
     public void likePost(Integer postId, String token, ApiCallback<Boolean> callback) {
-        String url = "http://10.0.2.2:8080/user/post/like/" + postId;
+        String url = ApiConstants.POST_LIKE_URL + postId;
 
         Request request = new Request.Builder()
                 .url(url)

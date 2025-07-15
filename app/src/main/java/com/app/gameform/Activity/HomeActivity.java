@@ -1,5 +1,7 @@
 package com.app.gameform.Activity;
 
+import static com.app.gameform.network.ApiConstants.USER_POST;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -321,7 +323,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     }
 
     private String getApiUrl(String type) {
-        String baseUrl = "http://10.0.2.2:8080/user/post/";
+        String baseUrl = USER_POST;
 
         switch (type) {
             case "hot":

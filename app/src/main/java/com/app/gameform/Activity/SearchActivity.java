@@ -153,11 +153,6 @@ public class SearchActivity extends AppCompatActivity {
      */
     private void performSearch(String query) {
         // 这里实现搜索逻辑
-        // 例如：跳转到搜索结果页面
-        /*Intent intent = new Intent(this, SearchResultActivity.class);
-        intent.putExtra("search_query", query);
-        startActivity(intent);*/
-
         // 保存搜索历史
         saveSearchHistory(query);
     }

@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import com.app.gameform.R;
+import com.app.gameform.network.ApiConstants;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -27,7 +28,7 @@ public class ImageUtils {
 
     private static final String TAG = "ImageUtils";
     // 修复基础URL，添加完整的图片路径
-    private static final String BASE_URL = "http://10.0.2.2:8080/user/public/";
+    private static final String BASE_URL = ApiConstants.USER_PUBLIC_BASE_URL;
 
     // 支持的图片格式
     private static final List<String> IMAGE_EXTENSIONS = Arrays.asList(
