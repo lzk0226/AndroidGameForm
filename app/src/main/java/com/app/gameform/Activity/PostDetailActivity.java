@@ -81,6 +81,8 @@ public class PostDetailActivity extends AppCompatActivity {
         tvPostTitle = findViewById(R.id.tv_post_title);
         tvContent = findViewById(R.id.tv_post_content);
         ivImage = findViewById(R.id.iv_post_image);
+        ImageView ivBack = findViewById(R.id.iv_back);
+
 
         tvLikeCount = findViewById(R.id.tv_like_count);
         tvCommentCount = findViewById(R.id.tv_comment_count);
@@ -108,6 +110,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
     private void initListener() {
         ivSend.setOnClickListener(v -> sendComment());
+        findViewById(R.id.layout_back).setOnClickListener(v -> finish());
     }
 
     private void loadPostDetail() {

@@ -7,9 +7,43 @@
     android:background="#F9F9F9"
     android:fitsSystemWindows="true">
 
+    <!-- 顶部返回按钮 -->
+   <!-- 顶部返回按钮（点击整个区域都可返回） -->
+<LinearLayout
+    android:id="@+id/layout_back"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:background="@android:color/transparent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <ImageView
+        android:id="@+id/iv_back"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:contentDescription="返回"
+        android:src="@mipmap/fh"
+        app:tint="#333333" />
+
+    <TextView
+        android:id="@+id/tv_back_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="返回"
+        android:textColor="#333333"
+        android:textSize="16sp"
+        android:layout_marginStart="8dp" />
+</LinearLayout>
+
+
     <!-- 主体内容可滚动区域 -->
     <ScrollView
         android:id="@+id/scroll_content"
+        android:layout_below="@id/layout_back"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/input_bar"
