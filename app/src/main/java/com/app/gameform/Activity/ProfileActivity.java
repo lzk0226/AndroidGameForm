@@ -18,6 +18,12 @@ import com.app.gameform.domain.User;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.UserApiService;
 import com.app.gameform.utils.BottomNavigationHelper;
+import com.app.gameform.utils.ImageUtils;
+
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ProfileActivity extends AppCompatActivity {
     private BottomNavigationHelper bottomNavigationHelper;
@@ -34,7 +40,9 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView tvPhone;
     private TextView tvJoinDate;
     private CardView cvLogout;
-    private ImageView ivAvatar;
+    private CardView cvEditProfile;
+    private ImageView ivEdit;
+    private CircleImageView ivAvatar;
 
     // 常量
     private static final String PREFS_NAME = "UserPrefs";
@@ -42,6 +50,7 @@ public class ProfileActivity extends AppCompatActivity {
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_USERNAME = "username";
+    private static final int REQUEST_CODE_EDIT_PROFILE = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +76,8 @@ public class ProfileActivity extends AppCompatActivity {
         tvPhone = findViewById(R.id.tvPhone);
         tvJoinDate = findViewById(R.id.tvJoinDate);
         cvLogout = findViewById(R.id.cvLogout);
+        cvEditProfile = findViewById(R.id.cvEditProfile);
+        ivEdit = findViewById(R.id.ivEdit);
         ivAvatar = findViewById(R.id.ivAvatar);
 
         // 设置登录提示点击事件
@@ -74,6 +85,10 @@ public class ProfileActivity extends AppCompatActivity {
 
         // 设置退出登录点击事件
         cvLogout.setOnClickListener(v -> logout());
+
+        // 设置编辑按钮点击事件
+        cvEditProfile.setOnClickListener(v -> navigateToEditProfile());
+        ivEdit.setOnClickListener(v -> navigateToEditProfile());
     }
 
     /**
@@ -126,13 +141,10 @@ public class ProfileActivity extends AppCompatActivity {
     /**
      * 加载用户信息
      */
-    /**
-     * 加载用户信息
-     */
     private void loadUserInfo() {
         long userId = sharedPreferences.getLong(KEY_USER_ID, 0);
         String username = sharedPreferences.getString(KEY_USERNAME, "");
-        String token = sharedPreferences.getString(KEY_TOKEN, ""); // 添加这行获取token
+        String token = sharedPreferences.getString(KEY_TOKEN, "");
 
         if (userId == 0) {
             // 用户ID无效，显示登录提示
@@ -146,7 +158,7 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
 
-        // 从API获取完整用户信息 - 添加token参数
+        // 从API获取完整用户信息
         userApiService.getUserInfo(userId, token, new ApiCallback<User>() {
             @Override
             public void onSuccess(User user) {
@@ -172,15 +184,17 @@ public class ProfileActivity extends AppCompatActivity {
      * 显示用户信息
      */
     private void displayUserInfo(User user) {
-        tvUsername.setText(user.getUserName());
+        // 修改：昵称在上面，用户名在下面
         tvNickname.setText(user.getNickName());
+        tvUsername.setText(user.getUserName());
 
         // 邮箱
         if (!TextUtils.isEmpty(user.getEmail())) {
             tvEmail.setText(user.getEmail());
             tvEmail.setVisibility(View.VISIBLE);
         } else {
-            tvEmail.setVisibility(View.GONE);
+            tvEmail.setText("未绑定");
+            tvEmail.setVisibility(View.VISIBLE);
         }
 
         // 手机号
@@ -188,18 +202,35 @@ public class ProfileActivity extends AppCompatActivity {
             tvPhone.setText(user.getPhonenumber());
             tvPhone.setVisibility(View.VISIBLE);
         } else {
-            tvPhone.setVisibility(View.GONE);
+            tvPhone.setText("未绑定");
+            tvPhone.setVisibility(View.VISIBLE);
         }
 
         // 注册时间
         if (user.getCreateTime() != null) {
-            tvJoinDate.setText(" "+user.getCreateTime());
-        } else {
-            tvJoinDate.setText("注册时间：未知");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            String dateStr = sdf.format(user.getCreateTime());
+            tvJoinDate.setText(dateStr);
+        }
+        else {
+            tvJoinDate.setText("未知");
         }
 
-        // 设置默认头像
-        ivAvatar.setImageResource(R.drawable.ic_default_avatar);
+        // 加载用户头像
+        loadUserAvatar(user.getAvatar());
+    }
+
+    /**
+     * 加载用户头像的方法
+     */
+    private void loadUserAvatar(String avatarUrl) {
+        if (!TextUtils.isEmpty(avatarUrl)) {
+            // 使用工具类加载用户头像
+            ImageUtils.loadUserAvatar(this, ivAvatar, avatarUrl);
+        } else {
+            // 设置默认头像
+            ivAvatar.setImageResource(R.drawable.ic_default_avatar);
+        }
     }
 
     /**
@@ -208,6 +239,14 @@ public class ProfileActivity extends AppCompatActivity {
     private void navigateToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         startActivity(intent);
+    }
+
+    /**
+     * 跳转到编辑个人信息页面
+     */
+    private void navigateToEditProfile() {
+        Intent intent = new Intent(this, EditProfileActivity.class);
+        startActivityForResult(intent, REQUEST_CODE_EDIT_PROFILE);
     }
 
     /**
@@ -233,6 +272,15 @@ public class ProfileActivity extends AppCompatActivity {
         editor.remove(KEY_USER_ID);
         editor.remove(KEY_USERNAME);
         editor.apply();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_EDIT_PROFILE && resultCode == RESULT_OK) {
+            // 编辑个人信息成功后，重新加载用户信息
+            loadUserInfo();
+        }
     }
 
     @Override

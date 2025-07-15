@@ -35,6 +35,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
+        android:contentDescription="个人资料页面内容"
         app:layout_constraintBottom_toTopOf="@+id/bottomNavigationInclude"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -114,41 +115,51 @@
                         android:gravity="center_vertical">
 
                         <!-- 头像 -->
-                        <ImageView
+                        <de.hdodenhof.circleimageview.CircleImageView
                             android:id="@+id/ivAvatar"
-                            android:layout_width="64dp"
-                            android:layout_height="64dp"
-                            android:background="#E3F2FD"
-                            android:src="@drawable/ic_default_avatar"
-                            android:scaleType="centerCrop"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:src="@drawable/ic_default_avatar" />
 
                         <!-- 用户信息 -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tvUsername"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="用户名"
-                                android:textColor="#333333"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="4dp" />
+                            android:orientation="vertical"
+                            android:layout_marginStart="16dp">
 
                             <TextView
                                 android:id="@+id/tvNickname"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="昵称"
+                                android:textColor="#333333"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="4dp" />
+
+                            <TextView
+                                android:id="@+id/tvUsername"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="用户名"
                                 android:textColor="#666666"
                                 android:textSize="14sp" />
 
                         </LinearLayout>
+
+                        <!-- 编辑按钮 -->
+                        <ImageView
+                            android:id="@+id/ivEdit"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="编辑个人信息"
+                            android:focusable="true"
+                            android:padding="4dp"
+                            android:src="@mipmap/bj" />
 
                     </LinearLayout>
 
@@ -256,6 +267,52 @@
 
                 </androidx.cardview.widget.CardView>
 
+                <!-- 修改信息按钮 -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cvEditProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="#FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="20dp"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="16dp"
+                            android:src="@mipmap/bj"
+                            app:tint="#2196F3" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="修改个人信息"
+                            android:textColor="#2196F3"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=">"
+                            android:textColor="#2196F3"
+                            android:textSize="16sp" />
+
+                    </LinearLayout>
+
+                </androidx.cardview.widget.CardView>
+
                 <!-- 操作按钮 -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/cvLogout"
@@ -275,6 +332,13 @@
                         android:orientation="horizontal"
                         android:padding="20dp"
                         android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="16dp"
+                            android:src="@android:drawable/ic_delete"
+                            app:tint="#FF5252" />
 
                         <TextView
                             android:layout_width="0dp"
