@@ -17,9 +17,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
 import com.app.gameform.domain.Post;
-import com.app.gameform.network.ApiService;
 import com.app.gameform.network.ApiCallback;
+import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.BottomNavigationHelper;
+import com.app.gameform.utils.SharedPrefManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -278,8 +279,9 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
 
             @Override
             public void onError(String error) {
-                // 后台刷新失败，静默处理
-                Log.e("HomeActivity", "后台刷新失败: " + error);
+                runOnUiThread(() ->
+                        Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show()
+                );
             }
         });
     }
@@ -312,7 +314,6 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             @Override
             public void onError(String error) {
                 runOnUiThread(() -> {
-                    hideLoading();
                     Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show();
                 });
             }
@@ -351,12 +352,9 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     @Override
     public void onPostClick(Post post, int position) {
         // 处理帖子点击事件 - 跳转到帖子详情页
-        // 点击帖子时增加浏览量
-        //incrementViewCount(post, position);
-        Toast.makeText(this, "点击了帖子: " + post.getPostTitle(), Toast.LENGTH_SHORT).show();
-        // Intent intent = new Intent(this, PostDetailActivity.class);
-        // intent.putExtra("postId", post.getPostId());
-        // startActivity(intent);
+        Intent intent = new Intent(this, PostDetailActivity.class);
+        intent.putExtra("post_id", post.getPostId());
+        startActivity(intent);
     }
 
     @Override
@@ -399,5 +397,25 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         Toast.makeText(this, "点赞了帖子", Toast.LENGTH_SHORT).show();
 
         // 这里应该调用API进行点赞操作
+        ApiService.getInstance().likePost(post.getPostId(),
+                SharedPrefManager.getInstance(this).getToken(),
+                new ApiCallback<Boolean>() {
+                    @Override
+                    public void onSuccess(Boolean result) {
+                        if (result) {
+                            // 更新UI
+                            postAdapter.updateLikeStatus(position, true, post.getLikeCount() + 1);
+                        } else {
+                            Toast.makeText(HomeActivity.this, "点赞失败", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        runOnUiThread(() -> {
+                        Toast.makeText(HomeActivity.this, "点赞失败: " + error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 }

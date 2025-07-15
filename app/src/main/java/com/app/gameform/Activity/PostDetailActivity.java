@@ -20,6 +20,7 @@ import com.app.gameform.domain.Post;
 import com.app.gameform.utils.ImageUtils;
 import com.app.gameform.utils.SharedPrefManager;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
@@ -54,7 +55,10 @@ public class PostDetailActivity extends AppCompatActivity {
     private CommentAdapter commentAdapter;
     private List<Comment> commentList = new ArrayList<>();
     private OkHttpClient client = new OkHttpClient();
-    private Gson gson = new Gson();
+    private Gson gson = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd HH:mm:ss")
+            .create();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
