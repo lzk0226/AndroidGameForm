@@ -218,27 +218,57 @@ public class PostDetailActivity extends AppCompatActivity {
         TextView tvCommentContent = commentView.findViewById(R.id.tv_comment_content);
         ImageView ivLike = commentView.findViewById(R.id.iv_like);
         TextView tvLikeCount = commentView.findViewById(R.id.tv_like_count);
+        LinearLayout layoutChildComments = commentView.findViewById(R.id.layout_child_comments); // 获取子评论布局
 
         // 设置评论数据
         tvUserName.setText(comment.getNickName());
         tvCommentContent.setText(HtmlUtils.removeHtmlTags(comment.getCommentContent()));
         tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
-
-        // 加载用户头像
         ImageUtils.loadUserAvatar(this, ivUserAvatar, comment.getUserAvatar());
 
         // 设置点赞状态
         if (comment.getHasLiked() != null && comment.getHasLiked()) {
-            ivLike.setImageResource(R.mipmap.dz);
+            ivLike.setImageResource(R.mipmap.dz); // 已点赞图标
         } else {
-            ivLike.setImageResource(R.mipmap.dz);
+            ivLike.setImageResource(R.mipmap.dz); // 未点赞图标（可以替换为灰色）
         }
 
         // 点赞点击事件
         ivLike.setOnClickListener(v -> onCommentLikeClicked(comment));
 
+        // ✅ 渲染子评论
+        if (comment.getChildren() != null && !comment.getChildren().isEmpty()) {
+            for (Comment child : comment.getChildren()) {
+                View childView = LayoutInflater.from(this).inflate(R.layout.activity_item_comment, null);
+
+                CircleImageView childAvatar = childView.findViewById(R.id.iv_user_avatar);
+                TextView childName = childView.findViewById(R.id.tv_user_name);
+                TextView childContent = childView.findViewById(R.id.tv_comment_content);
+                ImageView childLike = childView.findViewById(R.id.iv_like);
+                TextView childLikeCount = childView.findViewById(R.id.tv_like_count);
+
+                childName.setText(child.getNickName());
+                childContent.setText(HtmlUtils.removeHtmlTags(child.getCommentContent()));
+                childLikeCount.setText(String.valueOf(child.getLikeCount()));
+                ImageUtils.loadUserAvatar(this, childAvatar, child.getUserAvatar());
+
+                // 设置子评论点赞
+                if (child.getHasLiked() != null && child.getHasLiked()) {
+                    childLike.setImageResource(R.mipmap.dz);
+                } else {
+                    childLike.setImageResource(R.mipmap.dz);
+                }
+
+                // 子评论点赞点击事件
+                childLike.setOnClickListener(v -> onCommentLikeClicked(child));
+
+                layoutChildComments.addView(childView); // 添加到子评论容器
+            }
+        }
+
         return commentView;
     }
+
 
     private void sendComment() {
         String content = etCommentInput.getText().toString().trim();

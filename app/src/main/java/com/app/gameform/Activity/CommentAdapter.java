@@ -87,6 +87,11 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         holder.llRepliesContainer.removeAllViews();
 
         List<Comment> replies = comment.getChildren();
+        for (Comment c : commentList) {
+            Log.d("评论调试", "主评论ID=" + c.getCommentId() + "，子评论数=" +
+                    (c.getChildren() == null ? "null" : c.getChildren().size()));
+        }
+
 
         // 添加调试日志
         Log.d("CommentAdapter", "Comment ID: " + comment.getCommentId());
