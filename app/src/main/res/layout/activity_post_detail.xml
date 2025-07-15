@@ -8,37 +8,32 @@
     android:fitsSystemWindows="true">
 
     <!-- 顶部返回按钮 -->
-   <!-- 顶部返回按钮（点击整个区域都可返回） -->
-<LinearLayout
-    android:id="@+id/layout_back"
-    android:layout_width="match_parent"
-    android:layout_height="56dp"
-    android:background="@android:color/transparent"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:clickable="true"
-    android:focusable="true">
+    <LinearLayout
+        android:id="@+id/layout_back"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@android:color/transparent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
-    <ImageView
-        android:id="@+id/iv_back"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:contentDescription="返回"
-        android:src="@mipmap/fh"
-        app:tint="#333333" />
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="返回"
+            android:src="@mipmap/fh"
+            app:tint="#333333" />
 
-    <TextView
-        android:id="@+id/tv_back_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="返回"
-        android:textColor="#333333"
-        android:textSize="16sp"
-        android:layout_marginStart="8dp" />
-</LinearLayout>
-
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="返回"
+            android:textColor="#333333"
+            android:textSize="16sp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
 
     <!-- 主体内容可滚动区域 -->
     <ScrollView
@@ -111,7 +106,7 @@
                 android:textSize="18sp"
                 android:textColor="#333333"
                 android:textStyle="bold"
-                android:layout_marginTop="16dp"/>
+                android:layout_marginTop="16dp" />
 
             <!-- 内容 -->
             <TextView
@@ -135,42 +130,45 @@
                 android:visibility="gone" />
 
             <!-- 点赞评论分享 -->
+            <!-- 点赞评论分享 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:gravity="center"
                 android:layout_marginTop="16dp">
 
+                <!-- 浏览量 -->
                 <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center">
 
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@mipmap/dz"
+                        android:src="@mipmap/lll"
                         app:tint="#666666" />
 
                     <TextView
-                        android:id="@+id/tv_like_count"
+                        android:id="@+id/tv_share_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="156"
-                        android:textSize="13sp"
+                        android:layout_marginStart="6dp"
+                        android:text="123"
                         android:textColor="#666666"
-                        android:layout_marginStart="6dp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
+                <!-- 评论量 -->
                 <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center">
 
                     <ImageView
                         android:layout_width="20dp"
@@ -188,27 +186,33 @@
                         android:layout_marginStart="6dp" />
                 </LinearLayout>
 
+                <!-- 点赞按钮 -->
                 <LinearLayout
+                    android:id="@+id/like_button"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
 
                     <ImageView
+                        android:id="@+id/iv_like_icon"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@mipmap/lll"
+                        android:src="@mipmap/dz"
                         app:tint="#666666" />
 
                     <TextView
-                        android:id="@+id/tv_share_count"
+                        android:id="@+id/tv_like_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:text="123"
+                        android:text="156"
+                        android:textSize="13sp"
                         android:textColor="#666666"
-                        android:textSize="13sp" />
+                        android:layout_marginStart="6dp" />
                 </LinearLayout>
 
             </LinearLayout>
