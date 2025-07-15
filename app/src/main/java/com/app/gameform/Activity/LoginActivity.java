@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.app.gameform.R;
 import com.app.gameform.manager.UserManager;
+import com.app.gameform.utils.SharedPrefManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 /**
@@ -132,13 +133,17 @@ public class LoginActivity extends AppCompatActivity {
 
         userManager.login(username, password, new UserManager.UserOperationCallback() {
             @Override
-            public void onSuccess(String message) {
+            public void onSuccess(String message, String token) {
                 runOnUiThread(() -> {
+                    // ✅ 保存 token
+                    SharedPrefManager.getInstance(LoginActivity.this).saveToken(token);
+
                     showLoading(false);
                     Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
                     navigateToMain();
                 });
             }
+
 
             @Override
             public void onError(String error) {
@@ -191,14 +196,17 @@ public class LoginActivity extends AppCompatActivity {
 
         userManager.register(username, nickname, email, phone, password, new UserManager.UserOperationCallback() {
             @Override
-            public void onSuccess(String message) {
+            public void onSuccess(String message, String token) {
                 runOnUiThread(() -> {
+                    // ✅ 保存 token
+                    SharedPrefManager.getInstance(LoginActivity.this).saveToken(token);
+
                     showLoading(false);
                     Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
-                    switchToLogin();
-                    etLoginUsername.setText(username);
+                    navigateToMain();
                 });
             }
+
 
             @Override
             public void onError(String error) {

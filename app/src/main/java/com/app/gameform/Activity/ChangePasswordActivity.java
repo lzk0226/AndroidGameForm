@@ -71,7 +71,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
         userManager.changePassword(oldPassword, newPassword, new UserManager.UserOperationCallback() {
             @Override
-            public void onSuccess(String message) {
+            public void onSuccess(String message, String token) {
                 runOnUiThread(() -> {
                     Toast.makeText(ChangePasswordActivity.this, message, Toast.LENGTH_SHORT).show();
                     finish();

@@ -396,7 +396,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     @Override
     public void onLikeClick(Post post, int position) {
         // 处理点赞点击事件
-        Toast.makeText(this, "点赞了帖子", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "点赞了帖子", Toast.LENGTH_SHORT).show();
 
         // 这里应该调用API进行点赞操作
         ApiService.getInstance().likePost(post.getPostId(),
@@ -408,14 +408,14 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
                             // 更新UI
                             postAdapter.updateLikeStatus(position, true, post.getLikeCount() + 1);
                         } else {
-                            Toast.makeText(HomeActivity.this, "点赞失败", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(HomeActivity.this, "点赞失败", Toast.LENGTH_SHORT);
                         }
                     }
 
                     @Override
                     public void onError(String error) {
                         runOnUiThread(() -> {
-                        Toast.makeText(HomeActivity.this, "点赞失败: " + error, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(HomeActivity.this, "点赞失败: " + error, Toast.LENGTH_SHORT);
                         });
                     }
                 });

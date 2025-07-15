@@ -1,5 +1,7 @@
 package com.app.gameform.network;
 
+import android.text.TextUtils;
+
 import com.app.gameform.domain.Post;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -96,9 +98,15 @@ public class ApiService {
     public void likePost(Integer postId, String token, ApiCallback<Boolean> callback) {
         String url = ApiConstants.POST_LIKE_URL + postId;
 
+        // 避免 token 为 null 导致崩溃
+        if (TextUtils.isEmpty(token)) {
+            callback.onError("token为空，无法点赞，请重新登录");
+            return;
+        }
+
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Authorization", token.startsWith("Bearer ") ? token : "Bearer " + token)
                 .post(okhttp3.RequestBody.create(new byte[0]))
                 .build();
 
@@ -127,6 +135,7 @@ public class ApiService {
             }
         });
     }
+
 
     /**
      * API响应包装类

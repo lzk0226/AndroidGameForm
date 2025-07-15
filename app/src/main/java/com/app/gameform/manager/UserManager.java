@@ -204,17 +204,22 @@ public class UserManager {
 
         userApiService.login(loginUser, new ApiCallback<UserApiService.LoginResponse>() {
             @Override
-            public void onSuccess(UserApiService.LoginResponse response) {
-                saveLoginInfo(response);
-                callback.onSuccess("登录成功");
+            public void onSuccess(UserApiService.LoginResponse data) {
+                // 保存登录信息（token、userId、username等）
+                saveLoginInfo(data);
+
+                String token = data.getTokenType() + " " + data.getAccessToken();
+                callback.onSuccess("登录成功", token);
             }
 
             @Override
-            public void onError(String error) {
-                callback.onError("登录失败: " + error);
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
             }
         });
     }
+
+
 
     /**
      * 用户注册
@@ -263,7 +268,7 @@ public class UserManager {
         userApiService.register(user, new ApiCallback<String>() {
             @Override
             public void onSuccess(String message) {
-                callback.onSuccess(message);
+                callback.onSuccess(message, null); // 传两个参数
             }
 
             @Override
@@ -271,6 +276,7 @@ public class UserManager {
                 callback.onError("注册失败: " + error);
             }
         });
+
     }
 
     /**
@@ -320,7 +326,7 @@ public class UserManager {
         userApiService.updateProfile(updateUser, token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                callback.onSuccess("个人信息更新成功");
+                callback.onSuccess("个人信息更新成功",null);
             }
 
             @Override
@@ -347,7 +353,7 @@ public class UserManager {
         userApiService.updatePassword(request, token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                callback.onSuccess("密码修改成功");
+                callback.onSuccess("密码修改成功",null);
             }
 
             @Override
@@ -365,7 +371,7 @@ public class UserManager {
 
         if (TextUtils.isEmpty(token)) {
             clearLoginInfo();
-            callback.onSuccess("已退出登录");
+            callback.onSuccess("已退出登录",null);
             return;
         }
 
@@ -373,14 +379,14 @@ public class UserManager {
             @Override
             public void onSuccess(String result) {
                 clearLoginInfo();
-                callback.onSuccess("已退出登录");
+                callback.onSuccess("已退出登录",null);
             }
 
             @Override
             public void onError(String error) {
                 // 即使服务器端登出失败，也清除本地数据
                 clearLoginInfo();
-                callback.onSuccess("已退出登录");
+                callback.onSuccess("已退出登录",null);
             }
         });
     }
@@ -476,9 +482,10 @@ public class UserManager {
      * 用户操作回调接口
      */
     public interface UserOperationCallback {
-        void onSuccess(String message);
+        void onSuccess(String message, String token);
         void onError(String error);
     }
+
 
     /**
      * 用户信息回调接口

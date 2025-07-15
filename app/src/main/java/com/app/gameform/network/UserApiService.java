@@ -2,6 +2,8 @@ package com.app.gameform.network;
 
 import static com.app.gameform.network.ApiConstants.USER_PROFILE;
 
+import android.util.Log;
+
 import com.app.gameform.Run.ApiResponse;
 import com.app.gameform.domain.User;
 import com.google.gson.Gson;
@@ -20,17 +22,14 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-/**
- * 用户相关API服务类
- * 对应后端UserController的接口
- */
 public class UserApiService {
 
     private static UserApiService instance;
     private OkHttpClient client;
     private Gson gson;
 
-    // 基础URL，根据实际情况修改
+    private static final String TAG = "UserApiService";
+
     private static final String BASE_URL = USER_PROFILE;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -57,402 +56,196 @@ public class UserApiService {
         return instance;
     }
 
-    /**
-     * 用户注册
-     */
+    // 通用请求执行方法
+    private <T> void makeRequest(String url, String method, String token, Object requestBodyObj,
+                                 Type apiResponseType, ApiCallback<T> callback, String logTag) {
+
+        RequestBody body = null;
+        if (requestBodyObj != null) {
+            String json = gson.toJson(requestBodyObj);
+            body = RequestBody.create(JSON, json);
+        } else if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+            // 空body占位
+            body = RequestBody.create(new byte[0]);
+        }
+
+        Request.Builder builder = new Request.Builder()
+                .url(url);
+
+        if (token != null && !token.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+
+        switch (method.toUpperCase()) {
+            case "GET":
+                builder.get();
+                break;
+            case "POST":
+                builder.post(body);
+                break;
+            case "PUT":
+                builder.put(body);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported HTTP method: " + method);
+        }
+
+        Request request = builder.build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                callback.onError("网络连接失败: " + e.getMessage());
+            }
+
+            @Override public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String responseBody = response.body().string();
+                    ApiResponse<T> apiResponse = gson.fromJson(responseBody, apiResponseType);
+
+                    if (apiResponse.isSuccess()) {
+                        // 兼容原有某些接口空数据返回默认提示文字
+                        T data = apiResponse.getData();
+                        if (data == null &&
+                                (callback instanceof ApiCallbackStringDefault)) {
+                            @SuppressWarnings("unchecked")
+                            T defaultMsg = (T) ((ApiCallbackStringDefault) callback).getDefaultSuccessMessage();
+                            callback.onSuccess(defaultMsg);
+                        } else {
+                            callback.onSuccess(data);
+                        }
+                    } else {
+                        //callback.onError(apiResponse.getMessage());
+                    }
+                } catch (Exception e) {
+                    //Log.e(TAG, logTag + "解析响应失败", e);
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
+    // 用于带默认成功提示的String类型回调标记接口
+    private interface ApiCallbackStringDefault extends ApiCallback<String> {
+        String getDefaultSuccessMessage();
+    }
+
+    // 以下所有接口调用均调用 makeRequest，保持方法名和签名不变
+
     public void register(User user, ApiCallback<String> callback) {
         String url = BASE_URL + "/register";
-        String json = gson.toJson(user);
-
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<String>>(){}.getType();
-                    ApiResponse<String> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData() != null ? apiResponse.getData() : "注册成功");
-                    } else {
-                        callback.onError(apiResponse.getMessage());
+        makeRequest(url, "POST", null, user,
+                new TypeToken<ApiResponse<String>>(){}.getType(),
+                new ApiCallbackStringDefault() {
+                    @Override public void onSuccess(String data) {
+                        callback.onSuccess(data);
                     }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+                    @Override public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                    @Override
+                    public String getDefaultSuccessMessage() {
+                        return "注册成功";
+                    }
+                }, "register");
     }
 
-    /**
-     * 用户登录
-     */
     public void login(User loginUser, ApiCallback<LoginResponse> callback) {
         String url = BASE_URL + "/login";
-        String json = gson.toJson(loginUser);
-
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<LoginResponse>>(){}.getType();
-                    ApiResponse<LoginResponse> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData());
-                    } else {
-                        callback.onError(apiResponse.getMessage());
-                    }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+        makeRequest(url, "POST", null, loginUser,
+                new TypeToken<ApiResponse<LoginResponse>>(){}.getType(),
+                callback, "login");
     }
 
-    /**
-     * 刷新Token
-     */
     public void refreshToken(String token, ApiCallback<TokenResponse> callback) {
         String url = BASE_URL + "/refreshToken";
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer " + token)
-                .post(RequestBody.create(new byte[0]))
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<TokenResponse>>(){}.getType();
-                    ApiResponse<TokenResponse> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData());
-                    } else {
-                        callback.onError(apiResponse.getMessage());
-                    }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+        makeRequest(url, "POST", token, null,
+                new TypeToken<ApiResponse<TokenResponse>>(){}.getType(),
+                callback, "refreshToken");
     }
 
-    /**
-     * 退出登录
-     */
     public void logout(String token, ApiCallback<String> callback) {
         String url = BASE_URL + "/logout";
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer " + token)
-                .post(RequestBody.create(new byte[0]))
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<String>>(){}.getType();
-                    ApiResponse<String> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData() != null ? apiResponse.getData() : "退出成功");
-                    } else {
-                        callback.onError(apiResponse.getMessage());
+        makeRequest(url, "POST", token, null,
+                new TypeToken<ApiResponse<String>>(){}.getType(),
+                new ApiCallbackStringDefault() {
+                    @Override public void onSuccess(String data) {
+                        callback.onSuccess(data);
                     }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+                    @Override public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                    @Override
+                    public String getDefaultSuccessMessage() {
+                        return "退出成功";
+                    }
+                }, "logout");
     }
 
-    /**
-     * 获取用户信息
-     */
     public void getUserInfo(Long userId, String token, ApiCallback<User> callback) {
         String url = BASE_URL + "/" + userId;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer " + token)
-                .get()
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<User>>(){}.getType();
-                    ApiResponse<User> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData());
-                    } else {
-                        callback.onError(apiResponse.getMessage());
-                    }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<User>>(){}.getType(),
+                callback, "getUserInfo");
     }
 
-    /**
-     * 更新用户资料
-     */
     public void updateProfile(User user, String token, ApiCallback<String> callback) {
         String url = BASE_URL + "/update";
-        String json = gson.toJson(user);
-
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer " + token)
-                .put(body)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<String>>(){}.getType();
-                    ApiResponse<String> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData() != null ? apiResponse.getData() : "更新成功");
-                    } else {
-                        callback.onError(apiResponse.getMessage());
+        makeRequest(url, "PUT", token, user,
+                new TypeToken<ApiResponse<String>>(){}.getType(),
+                new ApiCallbackStringDefault() {
+                    @Override public void onSuccess(String data) {
+                        callback.onSuccess(data);
                     }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+                    @Override public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                    @Override
+                    public String getDefaultSuccessMessage() {
+                        return "更新成功";
+                    }
+                }, "updateProfile");
     }
 
-    /**
-     * 修改密码
-     */
     public void updatePassword(UpdatePasswordRequest request, String token, ApiCallback<String> callback) {
         String url = BASE_URL + "/updatePassword";
-        String json = gson.toJson(request);
-
-        RequestBody body = RequestBody.create(JSON, json);
-        Request requestBuilder = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer " + token)
-                .put(body)
-                .build();
-
-        client.newCall(requestBuilder).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<String>>(){}.getType();
-                    ApiResponse<String> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData() != null ? apiResponse.getData() : "密码修改成功");
-                    } else {
-                        callback.onError(apiResponse.getMessage());
+        makeRequest(url, "PUT", token, request,
+                new TypeToken<ApiResponse<String>>(){}.getType(),
+                new ApiCallbackStringDefault() {
+                    @Override public void onSuccess(String data) {
+                        callback.onSuccess(data);
                     }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+                    @Override public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                    @Override
+                    public String getDefaultSuccessMessage() {
+                        return "密码修改成功";
+                    }
+                }, "updatePassword");
     }
 
-    /**
-     * 校验用户名唯一性
-     */
     public void checkUserNameUnique(String userName, ApiCallback<Boolean> callback) {
         String url = BASE_URL + "/checkUserNameUnique/" + userName;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<Boolean>>(){}.getType();
-                    ApiResponse<Boolean> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData());
-                    } else {
-                        callback.onError(apiResponse.getMessage());
-                    }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+        makeRequest(url, "GET", null, null,
+                new TypeToken<ApiResponse<Boolean>>(){}.getType(),
+                callback, "checkUserNameUnique");
     }
 
-    /**
-     * 校验邮箱唯一性
-     */
     public void checkEmailUnique(String email, ApiCallback<Boolean> callback) {
         String url = BASE_URL + "/checkEmailUnique/" + email;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<Boolean>>(){}.getType();
-                    ApiResponse<Boolean> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData());
-                    } else {
-                        callback.onError(apiResponse.getMessage());
-                    }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+        makeRequest(url, "GET", null, null,
+                new TypeToken<ApiResponse<Boolean>>(){}.getType(),
+                callback, "checkEmailUnique");
     }
 
-    /**
-     * 校验手机号唯一性
-     */
     public void checkPhoneUnique(String phone, ApiCallback<Boolean> callback) {
         String url = BASE_URL + "/checkPhoneUnique/" + phone;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError("网络连接失败: " + e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    String responseBody = response.body().string();
-                    Type type = new TypeToken<ApiResponse<Boolean>>(){}.getType();
-                    ApiResponse<Boolean> apiResponse = gson.fromJson(responseBody, type);
-
-                    if (apiResponse.isSuccess()) {
-                        callback.onSuccess(apiResponse.getData());
-                    } else {
-                        callback.onError(apiResponse.getMessage());
-                    }
-                } catch (Exception e) {
-                    callback.onError("解析响应失败: " + e.getMessage());
-                } finally {
-                    response.close();
-                }
-            }
-        });
+        makeRequest(url, "GET", null, null,
+                new TypeToken<ApiResponse<Boolean>>(){}.getType(),
+                callback, "checkPhoneUnique");
     }
 
-    /**
-     * 取消所有请求
-     */
     public void cancelAllRequests() {
         client.dispatcher().cancelAll();
     }

@@ -117,7 +117,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Authorization",  authToken)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -173,7 +173,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Authorization", authToken)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -228,7 +228,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
         // 设置点赞状态
         if (comment.getHasLiked() != null && comment.getHasLiked()) {
-            ivLike.setImageResource(R.mipmap.dz); // 已点赞图标
+            ivLike.setImageResource(R.mipmap.ydz); // 已点赞图标
         } else {
             ivLike.setImageResource(R.mipmap.dz); // 未点赞图标（可以替换为灰色）
         }
@@ -287,7 +287,7 @@ public class PostDetailActivity extends AppCompatActivity {
         RequestBody body = RequestBody.create(JSON, jsonBody);
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Authorization", authToken)
                 .post(body)
                 .build();
 
@@ -304,6 +304,7 @@ public class PostDetailActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         Toast.makeText(PostDetailActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
                         etCommentInput.setText("");
+                        Log.d("Token调试", "发送评论用的 token = " + authToken);
                         // 刷新评论列表
                         loadComments();
                         // 更新评论计数
@@ -328,7 +329,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Authorization", authToken)
                 .post(RequestBody.create(new byte[0]))
                 .build();
 
@@ -356,7 +357,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Authorization", authToken)
                 .delete()
                 .build();
 

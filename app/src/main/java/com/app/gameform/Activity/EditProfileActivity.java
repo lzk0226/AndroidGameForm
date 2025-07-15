@@ -133,7 +133,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
         userManager.updateProfile(nickname, gender, email, phone, new UserManager.UserOperationCallback() {
             @Override
-            public void onSuccess(String message) {
+            public void onSuccess(String message,String token) {
                 runOnUiThread(() -> {
                     Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_SHORT).show();
                     currentUser.setNickName(nickname);
