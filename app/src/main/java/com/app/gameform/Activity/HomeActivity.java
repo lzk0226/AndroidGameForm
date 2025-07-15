@@ -399,52 +399,5 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         Toast.makeText(this, "点赞了帖子", Toast.LENGTH_SHORT).show();
 
         // 这里应该调用API进行点赞操作
-        // 示例：
-        // ApiService.getInstance().likePost(post.getPostId(), new ApiCallback<Boolean>() {
-        //     @Override
-        //     public void onSuccess(Boolean result) {
-        //         runOnUiThread(() -> {
-        //             if (result) {
-        //                 // 更新点赞状态
-        //                 int newLikeCount = post.getLikeCount() + 1;
-        //                 postAdapter.updateLikeStatus(position, true, newLikeCount);
-        //                 Toast.makeText(HomeActivity.this, "点赞成功", Toast.LENGTH_SHORT).show();
-        //             } else {
-        //                 Toast.makeText(HomeActivity.this, "点赞失败", Toast.LENGTH_SHORT).show();
-        //             }
-        //         });
-        //     }
-        //
-        //     @Override
-        //     public void onError(String error) {
-        //         runOnUiThread(() -> {
-        //             Toast.makeText(HomeActivity.this, "点赞失败: " + error, Toast.LENGTH_SHORT).show();
-        //         });
-        //     }
-        // });
     }
-
-    /**
-     * 新增：增加浏览量的方法
-     * @param post 帖子对象
-     * @param position 位置
-     */
-    /*private void incrementViewCount(Post post, int position) {
-        // 调用API增加浏览量
-        ApiService.getInstance().incrementViewCount(post.getPostId(), new ApiCallback<Integer>() {
-            @Override
-            public void onSuccess(Integer newViewCount) {
-                runOnUiThread(() -> {
-                    // 更新本地数据和UI
-                    postAdapter.updateViewCount(position, newViewCount);
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                // 浏览量增加失败，可以选择静默处理或者记录日志
-                Log.e("HomeActivity", "增加浏览量失败: " + error);
-            }
-        });
-    }*/
 }

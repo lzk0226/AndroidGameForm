@@ -70,35 +70,26 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         Post post = postList.get(position);
-
         // 使用工具类加载用户头像
         ImageUtils.loadUserAvatar(context, holder.ivAvatar, post.getAvatar());
-
         // 设置用户昵称
         holder.tvUsername.setText(post.getNickName() != null ? post.getNickName() : "未知用户");
-
         // 设置发帖时间
         holder.tvTime.setText(formatTime(post.getCreateTime()));
-
         // 设置帖子内容 - 处理富文本标签
         holder.tvContent.setText(removeHtmlTags(post.getPostContent()));
-
         // 使用工具类加载帖子图片
         loadPostImage(holder.ivPostImage, holder.cvImage, post.getPhoto());
-
         // 设置互动数据
         holder.tvCommentCount.setText(String.format("评论 %d",
                 post.getCommentCount() != null ? post.getCommentCount() : 0));
         holder.tvLikeCount.setText(String.format("点赞 %d",
                 post.getLikeCount() != null ? post.getLikeCount() : 0));
-
         // 修改：显示浏览量而不是分享
         holder.tvViewCount.setText(String.format("浏览 %s",
                 formatViewCount(post.getViewCount() != null ? post.getViewCount() : 0)));
-
         // 设置点击监听器
         setupClickListeners(holder, post, position);
-
         // 设置置顶和热门标识
         setPostFlags(holder, post);
     }
@@ -119,7 +110,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return String.format("%.0fw", viewCount / 10000.0);
         }
     }
-
     /**
      * 移除HTML标签，只保留纯文本
      * @param htmlContent 包含HTML标签的内容
@@ -129,7 +119,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (TextUtils.isEmpty(htmlContent)) {
             return "";
         }
-
         // 方法1：使用 Html.fromHtml() 去除HTML标签
         String plainText;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
@@ -137,13 +126,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         } else {
             plainText = Html.fromHtml(htmlContent).toString();
         }
-
         // 去除多余的空行和空格
         plainText = plainText.replaceAll("\\n\\s*\\n", "\n").trim();
 
         return plainText;
     }
-
     /**
      * 备用方法：使用正则表达式移除HTML标签
      * 如果上面的方法不满足需求，可以使用这个方法
@@ -152,10 +139,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (TextUtils.isEmpty(htmlContent)) {
             return "";
         }
-
         // 移除所有HTML标签
         String plainText = htmlContent.replaceAll("<[^>]*>", "");
-
         // 处理HTML实体字符
         plainText = plainText.replace("&nbsp;", " ");
         plainText = plainText.replace("&lt;", "<");
@@ -163,10 +148,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         plainText = plainText.replace("&amp;", "&");
         plainText = plainText.replace("&quot;", "\"");
         plainText = plainText.replace("&#39;", "'");
-
         // 去除多余的空行和空格
         plainText = plainText.replaceAll("\\n\\s*\\n", "\n").trim();
-
         return plainText;
     }
 
@@ -187,7 +170,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 onPostClickListener.onPostClick(post, position);
             }
         });
-
         // 用户头像和昵称点击
         View.OnClickListener userClickListener = v -> {
             if (onPostClickListener != null) {
@@ -203,21 +185,18 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 onPostClickListener.onCommentClick(post, position);
             }
         });
-
         // 点赞按钮点击
         holder.llLike.setOnClickListener(v -> {
             if (onPostLikeListener != null) {
                 onPostLikeListener.onLikeClick(post, position);
             }
         });
-
         // 修改：浏览按钮点击（原来的分享按钮）
         holder.llShare.setOnClickListener(v -> {
             if (onPostClickListener != null) {
                 onPostClickListener.onViewClick(post, position);
             }
         });
-
         // 更多按钮点击
         holder.ivMore.setOnClickListener(v -> {
             if (onPostClickListener != null) {
@@ -225,7 +204,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             }
         });
     }
-
     private void setPostFlags(PostViewHolder holder, Post post) {
         // 设置置顶标识
         if ("1".equals(post.getTopFlag())) {
@@ -238,7 +216,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             // 可以在这里添加热门标识的显示逻辑
         }
     }
-
     private String formatTime(Date createTime) {
         if (createTime == null) {
             return "未知时间";
@@ -272,12 +249,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return dateFormat.format(createTime);
         }
     }
-
     @Override
     public int getItemCount() {
         return postList != null ? postList.size() : 0;
     }
-
     // 更新点赞状态
     public void updateLikeStatus(int position, boolean isLiked, int likeCount) {
         if (position >= 0 && position < postList.size()) {
@@ -286,7 +261,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemChanged(position);
         }
     }
-
     // 更新评论数量
     public void updateCommentCount(int position, int commentCount) {
         if (position >= 0 && position < postList.size()) {
@@ -295,7 +269,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemChanged(position);
         }
     }
-
     // 新增：更新浏览量
     public void updateViewCount(int position, int viewCount) {
         if (position >= 0 && position < postList.size()) {
@@ -304,7 +277,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemChanged(position);
         }
     }
-
     // 移除指定位置的帖子
     public void removePost(int position) {
         if (position >= 0 && position < postList.size()) {
@@ -313,7 +285,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemRangeChanged(position, postList.size());
         }
     }
-
     // ViewHolder类
     static class PostViewHolder extends RecyclerView.ViewHolder {
         CircleImageView ivAvatar;
@@ -330,7 +301,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvViewCount;  // 修改：原来的tvShare改为tvViewCount
         ImageView ivMore;
         ImageView ivLike;
-
         public PostViewHolder(@NonNull View itemView) {
             super(itemView);
             ivAvatar = itemView.findViewById(R.id.iv_avatar);
