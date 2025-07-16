@@ -47,95 +47,44 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Comment comment = commentList.get(position);
-
-        // 绑定主评论数据
-        bindMainComment(holder, comment);
-
-        // 绑定子评论数据
-        bindReplies(holder, comment);
+        bindMainCommentData(holder, comment);
+        bindReplyComments(holder, comment);
     }
 
-    private void bindMainComment(ViewHolder holder, Comment comment) {
-        holder.tvUserName.setText(comment.getNickName());
-        holder.tvCommentContent.setText(HtmlUtils.removeHtmlTags(comment.getCommentContent()));
-        holder.tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
-
-        // 加载用户头像
-        ImageUtils.loadUserAvatar(holder.itemView.getContext(),
-                holder.ivUserAvatar, comment.getUserAvatar());
-
-        // 设置点赞状态
-        updateLikeStatus(holder.ivLike, comment.getHasLiked());
-
-        // 点赞点击事件
-        holder.ivLike.setOnClickListener(v -> {
-            if (likeClickListener != null) {
-                likeClickListener.onCommentLikeClick(comment);
-            }
-        });
-
-        // 回复点击事件
-        holder.tvReply.setOnClickListener(v -> {
-            if (replyClickListener != null) {
-                replyClickListener.onCommentReplyClick(comment);
-            }
-        });
+    private void bindMainCommentData(ViewHolder holder, Comment comment) {
+        setUserName(holder.tvUserName, comment.getNickName());
+        setCommentContent(holder.tvCommentContent, comment.getCommentContent());
+        setLikeCount(holder.tvLikeCount, comment.getLikeCount());
+        loadUserAvatar(holder.itemView.getContext(), holder.ivUserAvatar, comment.getUserAvatar());
+        updateLikeButtonStatus(holder.ivLike, comment.getHasLiked());
+        setupLikeClickListener(holder.ivLike, comment);
+        setupReplyClickListener(holder.tvReply, comment);
     }
 
-    private void bindReplies(ViewHolder holder, Comment comment) {
-        // 清空之前的子评论
-        holder.llRepliesContainer.removeAllViews();
-
+    private void bindReplyComments(ViewHolder holder, Comment comment) {
+        clearReplyCommentsContainer(holder.llRepliesContainer);
         List<Comment> replies = comment.getChildren();
-        for (Comment c : commentList) {
-            Log.d("评论调试", "主评论ID=" + c.getCommentId() + "，子评论数=" +
-                    (c.getChildren() == null ? "null" : c.getChildren().size()));
-        }
-
-
-        // 添加调试日志
-        Log.d("CommentAdapter", "Comment ID: " + comment.getCommentId());
-        Log.d("CommentAdapter", "Replies count: " + (replies != null ? replies.size() : 0));
+        logCommentDetails(comment, replies);
 
         if (replies != null && !replies.isEmpty()) {
-            // 确保容器可见
-            holder.llRepliesContainer.setVisibility(View.VISIBLE);
+            showReplyCommentsContainer(holder.llRepliesContainer);
+            displayInitialReplies(holder.llRepliesContainer, replies);
 
-            // 显示前3个回复，如果有更多则显示"展开更多回复"按钮
-            int displayCount = Math.min(3, replies.size());
-            for (int i = 0; i < displayCount; i++) {
-                View replyView = createReplyView(holder.llRepliesContainer, replies.get(i));
-                if (replyView != null) {
-                    holder.llRepliesContainer.addView(replyView);
-                }
-            }
+            Log.d("CommentAdapter", "准备设置展开按钮，当前评论ID: " + comment.getCommentId()
+                    + ", 子评论数: " + replies.size());
 
-            // 如果有更多回复，显示展开按钮
-            if (replies.size() > 3) {
-                holder.tvExpandReplies.setVisibility(View.VISIBLE);
-                holder.tvExpandReplies.setText("展开更多回复(" + (replies.size() - 3) + ")");
-                holder.tvExpandReplies.setOnClickListener(v -> {
-                    // 显示所有回复
-                    for (int i = 3; i < replies.size(); i++) {
-                        View replyView = createReplyView(holder.llRepliesContainer, replies.get(i));
-                        if (replyView != null) {
-                            holder.llRepliesContainer.addView(replyView);
-                        }
-                    }
-                    holder.tvExpandReplies.setVisibility(View.GONE);
-                });
-            } else {
-                holder.tvExpandReplies.setVisibility(View.GONE);
-            }
+            setupExpandRepliesButton(holder, replies);
+
+            Log.d("CommentAdapter", "展开按钮状态: " +
+                    (replies.size() > 3 ? "可见" : "隐藏"));
         } else {
-            holder.llRepliesContainer.setVisibility(View.GONE);
-            holder.tvExpandReplies.setVisibility(View.GONE);
+            hideReplyCommentsContainer(holder.llRepliesContainer);
+            hideExpandRepliesButton(holder.tvExpandReplies);
         }
     }
 
     private View createReplyView(ViewGroup parent, Comment reply) {
         try {
-            // 重要：传入正确的parent参数，确保布局参数正确
             View replyView = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.item_reply_comment, parent, false);
 
@@ -147,31 +96,12 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
             TextView tvReplyExpand = replyView.findViewById(R.id.tv_reply_expand);
             TextView tvReplyButton = replyView.findViewById(R.id.tv_reply_button);
 
-            // 绑定回复数据
-            tvReplyUserName.setText(reply.getNickName());
-
-            // 处理回复内容和文本折叠
-            String content = HtmlUtils.removeHtmlTags(reply.getCommentContent());
-            setupTextCollapse(tvReplyContent, tvReplyExpand, content);
-
-            // 设置时间
-            if (reply.getCreateTime() != null) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy/M/d", Locale.getDefault());
-                tvReplyTime.setText(sdf.format(reply.getCreateTime()));
-            }
-
-            // 设置点赞数
-            tvReplyLikeCount.setText("点赞" + reply.getLikeCount());
-
-            // 加载头像
-            ImageUtils.loadUserAvatar(parent.getContext(), ivReplyAvatar, reply.getUserAvatar());
-
-            // 回复点击事件
-            tvReplyButton.setOnClickListener(v -> {
-                if (replyClickListener != null) {
-                    replyClickListener.onCommentReplyClick(reply);
-                }
-            });
+            setUserName(tvReplyUserName, reply.getNickName());
+            setupReplyContent(tvReplyContent, tvReplyExpand, reply.getCommentContent());
+            setReplyTime(tvReplyTime, reply.getCreateTime());
+            setReplyLikeCount(tvReplyLikeCount, reply.getLikeCount());
+            loadUserAvatar(parent.getContext(), ivReplyAvatar, reply.getUserAvatar());
+            setupReplyButtonClickListener(tvReplyButton, reply);
 
             return replyView;
         } catch (Exception e) {
@@ -180,12 +110,8 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         }
     }
 
-    /**
-     * 设置文本折叠功能
-     */
     private void setupTextCollapse(TextView textView, TextView expandButton, String content) {
         if (content.length() > 30) {
-            // 文本超过30字，需要折叠
             String shortText = content.substring(0, 30) + "...";
             textView.setText(shortText);
             expandButton.setVisibility(View.VISIBLE);
@@ -193,13 +119,11 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
             final boolean[] isExpanded = {false};
             expandButton.setOnClickListener(v -> {
                 if (!isExpanded[0]) {
-                    // 展开
                     textView.setText(content);
                     textView.setMaxLines(Integer.MAX_VALUE);
                     expandButton.setText("收起");
                     isExpanded[0] = true;
                 } else {
-                    // 收起
                     textView.setText(shortText);
                     textView.setMaxLines(2);
                     expandButton.setText("展开");
@@ -207,17 +131,16 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
                 }
             });
         } else {
-            // 文本不超过30字，直接显示
             textView.setText(content);
             expandButton.setVisibility(View.GONE);
         }
     }
 
-    private void updateLikeStatus(ImageView likeButton, Boolean hasLiked) {
+    private void updateLikeButtonStatus(ImageView likeButton, Boolean hasLiked) {
         if (hasLiked != null && hasLiked) {
-            likeButton.setImageResource(R.mipmap.ydz); // 已点赞状态的图标
+            likeButton.setImageResource(R.mipmap.ydz);
         } else {
-            likeButton.setImageResource(R.mipmap.dz); // 未点赞状态的图标
+            likeButton.setImageResource(R.mipmap.dz);
         }
     }
 
@@ -226,13 +149,11 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         return commentList.size();
     }
 
-    // 更新评论列表
     public void updateCommentList(List<Comment> newCommentList) {
         this.commentList = newCommentList;
         notifyDataSetChanged();
     }
 
-    // 更新单个评论的点赞状态
     public void updateCommentLikeStatus(int commentId, boolean hasLiked, int likeCount) {
         for (int i = 0; i < commentList.size(); i++) {
             Comment comment = commentList.get(i);
@@ -243,7 +164,6 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
                 return;
             }
 
-            // 检查子评论
             if (comment.getChildren() != null) {
                 for (Comment reply : comment.getChildren()) {
                     if (reply.getCommentId() == commentId) {
@@ -286,5 +206,113 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
 
     public interface OnCommentReplyClickListener {
         void onCommentReplyClick(Comment comment);
+    }
+
+    // 辅助方法
+    private void setUserName(TextView textView, String name) {
+        textView.setText(name);
+    }
+
+    private void setCommentContent(TextView textView, String content) {
+        textView.setText(HtmlUtils.removeHtmlTags(content));
+    }
+
+    private void setLikeCount(TextView textView, int count) {
+        textView.setText(String.valueOf(count));
+    }
+
+    private void loadUserAvatar(android.content.Context context, CircleImageView imageView, String avatarUrl) {
+        ImageUtils.loadUserAvatar(context, imageView, avatarUrl);
+    }
+
+    private void setupLikeClickListener(ImageView likeButton, Comment comment) {
+        likeButton.setOnClickListener(v -> {
+            if (likeClickListener != null) {
+                likeClickListener.onCommentLikeClick(comment);
+            }
+        });
+    }
+
+    private void setupReplyClickListener(TextView replyButton, Comment comment) {
+        replyButton.setOnClickListener(v -> {
+            if (replyClickListener != null) {
+                replyClickListener.onCommentReplyClick(comment);
+            }
+        });
+    }
+
+    private void clearReplyCommentsContainer(LinearLayout container) {
+        container.removeAllViews();
+    }
+
+    private void logCommentDetails(Comment comment, List<Comment> replies) {
+        Log.d("评论调试", "主评论ID=" + comment.getCommentId() + "，子评论数=" +
+                (replies == null ? "null" : replies.size()));
+        Log.d("CommentAdapter", "Comment ID: " + comment.getCommentId());
+        Log.d("CommentAdapter", "Replies count: " + (replies != null ? replies.size() : 0));
+    }
+
+    private void showReplyCommentsContainer(LinearLayout container) {
+        container.setVisibility(View.VISIBLE);
+    }
+
+    private void displayInitialReplies(LinearLayout container, List<Comment> replies) {
+        int displayCount = Math.min(3, replies.size());
+        for (int i = 0; i < displayCount; i++) {
+            View replyView = createReplyView(container, replies.get(i));
+            if (replyView != null) {
+                container.addView(replyView);
+            }
+        }
+    }
+
+    private void setupExpandRepliesButton(ViewHolder holder, List<Comment> replies) {
+        if (replies.size() > 3) {
+            holder.tvExpandReplies.setVisibility(View.VISIBLE);
+            holder.tvExpandReplies.setText("展开更多回复(" + (replies.size() - 3) + ")");
+            holder.tvExpandReplies.setOnClickListener(v -> {
+                for (int i = 3; i < replies.size(); i++) {
+                    View replyView = createReplyView(holder.llRepliesContainer, replies.get(i));
+                    if (replyView != null) {
+                        holder.llRepliesContainer.addView(replyView);
+                    }
+                }
+                holder.tvExpandReplies.setVisibility(View.GONE);
+            });
+        } else {
+            holder.tvExpandReplies.setVisibility(View.GONE);
+        }
+    }
+
+    private void hideReplyCommentsContainer(LinearLayout container) {
+        container.setVisibility(View.GONE);
+    }
+
+    private void hideExpandRepliesButton(TextView button) {
+        button.setVisibility(View.GONE);
+    }
+
+    private void setupReplyContent(TextView contentView, TextView expandButton, String content) {
+        String cleanContent = HtmlUtils.removeHtmlTags(content);
+        setupTextCollapse(contentView, expandButton, cleanContent);
+    }
+
+    private void setReplyTime(TextView textView, java.util.Date createTime) {
+        if (createTime != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy/M/d", Locale.getDefault());
+            textView.setText(sdf.format(createTime));
+        }
+    }
+
+    private void setReplyLikeCount(TextView textView, int count) {
+        textView.setText("点赞" + count);
+    }
+
+    private void setupReplyButtonClickListener(TextView replyButton, Comment comment) {
+        replyButton.setOnClickListener(v -> {
+            if (replyClickListener != null) {
+                replyClickListener.onCommentReplyClick(comment);
+            }
+        });
     }
 }

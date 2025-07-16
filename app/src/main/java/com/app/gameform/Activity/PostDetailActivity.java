@@ -22,6 +22,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.app.gameform.R;
 import com.app.gameform.domain.Comment;
 import com.app.gameform.domain.Post;
+import com.app.gameform.manager.PostLikeManager;
+import com.app.gameform.network.ApiCallback;
+import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.HtmlUtils;
 import com.app.gameform.utils.ImageUtils;
 import com.app.gameform.utils.SharedPrefManager;
@@ -69,14 +72,14 @@ public class PostDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_post_detail);
 
-        initView();
-        initData();
-        initListener();
-        loadPostDetail();
-        loadComments();
+        initializeViews();
+        initializeData();
+        setupListeners();
+        loadPostDetails();
+        loadCommentsList();
     }
 
-    private void initView() {
+    private void initializeViews() {
         scrollContent = findViewById(R.id.scroll_content);
         ivUserAvatar = findViewById(R.id.iv_user_avatar);
         tvUserName = findViewById(R.id.tv_user_name);
@@ -85,6 +88,9 @@ public class PostDetailActivity extends AppCompatActivity {
         tvContent = findViewById(R.id.tv_post_content);
         ivImage = findViewById(R.id.iv_post_image);
         ImageView ivBack = findViewById(R.id.iv_back);
+
+        ivLike = findViewById(R.id.iv_like_icon); // ✅ 改为实际布局里的 ID
+
 
         tvLikeCount = findViewById(R.id.tv_like_count);
         tvCommentCount = findViewById(R.id.tv_comment_count);
@@ -96,35 +102,60 @@ public class PostDetailActivity extends AppCompatActivity {
         layoutCommentsContainer = findViewById(R.id.layout_comments_container);
     }
 
-    private void initData() {
-        // 从Intent中获取帖子ID
+    private void initializeData() {
         postId = getIntent().getIntExtra("post_id", -1);
         authToken = SharedPrefManager.getInstance(this).getToken();
 
         if (postId == -1) {
-            Toast.makeText(this, "帖子ID无效", Toast.LENGTH_SHORT).show();
+            showToast("帖子ID无效");
             finish();
         }
     }
 
-    private void initListener() {
-        ivSend.setOnClickListener(v -> sendComment());
+    private void setupListeners() {
+        ivSend.setOnClickListener(v -> sendNewComment());
         findViewById(R.id.layout_back).setOnClickListener(v -> finish());
+        findViewById(R.id.like_button).setOnClickListener(v -> {
+            if (currentPost != null) {
+                onLikeClick(currentPost, 0);
+            }
+        });
+    }
+    PostLikeManager likeManager = new PostLikeManager(this);
+    private PostAdapter postAdapter;
+    public void onLikeClick(Post post, int position) {
+        likeManager.handleLikeClick(post, position, new PostLikeManager.LikeStatusCallback() {
+            @Override
+            public void onUpdate(boolean hasLiked, int newLikeCount) {
+                runOnUiThread(() -> {
+                    // 更新点赞数量显示
+                    tvLikeCount.setText(String.valueOf(newLikeCount));
+
+                    // 根据是否点赞，切换图标
+                    if (hasLiked) {
+                        ivLike.setImageResource(R.mipmap.ydz); // 已点赞图标
+                    } else {
+                        ivLike.setImageResource(R.mipmap.dz);  // 未点赞图标
+                    }
+                });
+            }
+
+            @Override
+            public void onFail(String errorMessage) {
+                Log.e("PostLikeManager", errorMessage);
+            }
+        });
     }
 
-    private void loadPostDetail() {
-        String url = USER_POST + postId;
 
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization",  authToken)
-                .build();
+    private void loadPostDetails() {
+        String url = USER_POST + postId;
+        Request request = createGetRequest(url);
 
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                runOnUiThread(() -> Toast.makeText(PostDetailActivity.this,
-                        "加载失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                showToastOnUiThread("加载失败: " + e.getMessage());
             }
 
             @Override
@@ -136,12 +167,34 @@ public class PostDetailActivity extends AppCompatActivity {
 
                     if (apiResponse != null && apiResponse.isSuccess()) {
                         currentPost = apiResponse.getData();
-                        runOnUiThread(() -> updatePostUI());
+                        updatePostUIOnUiThread();
+                        checkPostLikeStatus(currentPost);
                     }
                 }
             }
         });
     }
+
+    private void checkPostLikeStatus(Post post) {
+        ApiService.getInstance().checkPostLikeStatus(this, post.getPostId(), new ApiCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean hasLiked) {
+                runOnUiThread(() -> {
+                    if (hasLiked != null && hasLiked) {
+                        ivLike.setImageResource(R.mipmap.ydz); // 显示已点赞图标
+                    } else {
+                        ivLike.setImageResource(R.mipmap.dz); // 显示未点赞图标
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Log.e("PostDetailActivity", "检查点赞状态失败：" + errorMessage);
+            }
+        });
+    }
+
 
     private void updatePostUI() {
         if (currentPost == null) return;
@@ -149,32 +202,23 @@ public class PostDetailActivity extends AppCompatActivity {
         tvPostTitle.setText(currentPost.getPostTitle());
         tvContent.setText(HtmlUtils.removeHtmlTags(currentPost.getPostContent()));
         tvUserName.setText(currentPost.getNickName());
-        tvTime.setText("刚刚"); // 实际应用中应格式化时间
+        tvTime.setText("刚刚");
 
-        // 加载用户头像
-        ImageUtils.loadUserAvatar(this, ivUserAvatar, currentPost.getAvatar());
+        loadUserAvatar(ivUserAvatar, currentPost.getAvatar());
 
-        // 加载帖子图片
         if (!TextUtils.isEmpty(currentPost.getPhoto())) {
-            ivImage.setVisibility(View.VISIBLE);
-            ImageUtils.loadPostImage(this, ivImage, currentPost.getPhoto());
+            showPostImage();
+            loadPostImage(ivImage, currentPost.getPhoto());
         } else {
-            ivImage.setVisibility(View.GONE);
+            hidePostImage();
         }
 
-        // 更新计数
-        tvLikeCount.setText(String.valueOf(currentPost.getLikeCount()));
-        tvCommentCount.setText(String.valueOf(currentPost.getCommentCount()));
-        tvShareCount.setText(String.valueOf(currentPost.getViewCount()));
+        updateCounters();
     }
 
-    private void loadComments() {
+    private void loadCommentsList() {
         String url = USER_POST_COMMENT + postId;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", authToken)
-                .build();
+        Request request = createGetRequest(url);
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -190,9 +234,8 @@ public class PostDetailActivity extends AppCompatActivity {
                     ApiResponse<List<Comment>> apiResponse = gson.fromJson(json, type);
 
                     if (apiResponse != null && apiResponse.isSuccess()) {
-                        commentList.clear();
-                        commentList.addAll(apiResponse.getData());
-                        runOnUiThread(() -> updateCommentsUI());
+                        updateCommentList(apiResponse.getData());
+                        updateCommentsUIOnUiThread();
                     }
                 }
             }
@@ -200,14 +243,8 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void updateCommentsUI() {
-        // 清空原有评论视图
-        layoutCommentsContainer.removeAllViews();
-
-        // 动态添加评论视图
-        for (Comment comment : commentList) {
-            View commentView = createCommentView(comment);
-            layoutCommentsContainer.addView(commentView);
-        }
+        clearCommentsContainer();
+        addCommentsToContainer();
     }
 
     private View createCommentView(Comment comment) {
@@ -218,99 +255,43 @@ public class PostDetailActivity extends AppCompatActivity {
         TextView tvCommentContent = commentView.findViewById(R.id.tv_comment_content);
         ImageView ivLike = commentView.findViewById(R.id.iv_like);
         TextView tvLikeCount = commentView.findViewById(R.id.tv_like_count);
-        LinearLayout layoutChildComments = commentView.findViewById(R.id.layout_child_comments); // 获取子评论布局
+        LinearLayout layoutChildComments = commentView.findViewById(R.id.layout_child_comments);
 
-        // 设置评论数据
-        tvUserName.setText(comment.getNickName());
-        tvCommentContent.setText(HtmlUtils.removeHtmlTags(comment.getCommentContent()));
-        tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
-        ImageUtils.loadUserAvatar(this, ivUserAvatar, comment.getUserAvatar());
-
-        // 设置点赞状态
-        if (comment.getHasLiked() != null && comment.getHasLiked()) {
-            ivLike.setImageResource(R.mipmap.ydz); // 已点赞图标
-        } else {
-            ivLike.setImageResource(R.mipmap.dz); // 未点赞图标（可以替换为灰色）
-        }
-
-        // 点赞点击事件
-        ivLike.setOnClickListener(v -> onCommentLikeClicked(comment));
-
-        // ✅ 渲染子评论
-        if (comment.getChildren() != null && !comment.getChildren().isEmpty()) {
-            for (Comment child : comment.getChildren()) {
-                View childView = LayoutInflater.from(this).inflate(R.layout.activity_item_comment, null);
-
-                CircleImageView childAvatar = childView.findViewById(R.id.iv_user_avatar);
-                TextView childName = childView.findViewById(R.id.tv_user_name);
-                TextView childContent = childView.findViewById(R.id.tv_comment_content);
-                ImageView childLike = childView.findViewById(R.id.iv_like);
-                TextView childLikeCount = childView.findViewById(R.id.tv_like_count);
-
-                childName.setText(child.getNickName());
-                childContent.setText(HtmlUtils.removeHtmlTags(child.getCommentContent()));
-                childLikeCount.setText(String.valueOf(child.getLikeCount()));
-                ImageUtils.loadUserAvatar(this, childAvatar, child.getUserAvatar());
-
-                // 设置子评论点赞
-                if (child.getHasLiked() != null && child.getHasLiked()) {
-                    childLike.setImageResource(R.mipmap.dz);
-                } else {
-                    childLike.setImageResource(R.mipmap.dz);
-                }
-
-                // 子评论点赞点击事件
-                childLike.setOnClickListener(v -> onCommentLikeClicked(child));
-
-                layoutChildComments.addView(childView); // 添加到子评论容器
-            }
-        }
+        setCommentData(ivUserAvatar, tvUserName, tvCommentContent, tvLikeCount, comment);
+        setLikeButtonStatus(ivLike, comment.getHasLiked());
+        setupLikeClickListener(ivLike, comment);
+        renderChildComments(layoutChildComments, comment.getChildren());
 
         return commentView;
     }
 
-
-    private void sendComment() {
+    private void sendNewComment() {
         String content = etCommentInput.getText().toString().trim();
         if (TextUtils.isEmpty(content)) {
-            Toast.makeText(this, "评论内容不能为空", Toast.LENGTH_SHORT).show();
+            showToast("评论内容不能为空");
             return;
         }
 
-        Comment comment = new Comment();
-        comment.setPostId(postId);
-        comment.setCommentContent(content);
-
+        Comment comment = createNewComment(content);
         String url = USER_COMMENT;
         String jsonBody = gson.toJson(comment);
-
         RequestBody body = RequestBody.create(JSON, jsonBody);
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", authToken)
-                .post(body)
-                .build();
+        Request request = createPostRequest(url, body);
 
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                runOnUiThread(() -> Toast.makeText(PostDetailActivity.this,
-                        "评论失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                showToastOnUiThread("评论失败: " + e.getMessage());
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    runOnUiThread(() -> {
-                        Toast.makeText(PostDetailActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
-                        etCommentInput.setText("");
-                        Log.d("Token调试", "发送评论用的 token = " + authToken);
-                        // 刷新评论列表
-                        loadComments();
-                        // 更新评论计数
-                        currentPost.setCommentCount(currentPost.getCommentCount() + 1);
-                        tvCommentCount.setText(String.valueOf(currentPost.getCommentCount()));
-                    });
+                    showToastOnUiThread("评论成功");
+                    clearCommentInput();
+                    Log.d("Token调试", "发送评论用的 token = " + authToken);
+                    refreshCommentsList();
+                    updateCommentCounter();
                 }
             }
         });
@@ -326,12 +307,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
     private void likeComment(Comment comment) {
         String url = USER_COMMENT_LIKE + comment.getCommentId();
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", authToken)
-                .post(RequestBody.create(new byte[0]))
-                .build();
+        Request request = createPostRequest(url, RequestBody.create(new byte[0]));
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -342,11 +318,7 @@ public class PostDetailActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    runOnUiThread(() -> {
-                        comment.setHasLiked(true);
-                        comment.setLikeCount(comment.getLikeCount() + 1);
-                        updateCommentsUI();
-                    });
+                    updateCommentLikeStatusOnUiThread(comment, true, comment.getLikeCount() + 1);
                 }
             }
         });
@@ -354,12 +326,7 @@ public class PostDetailActivity extends AppCompatActivity {
 
     private void unlikeComment(Comment comment) {
         String url = USER_COMMENT_LIKE + comment.getCommentId();
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", authToken)
-                .delete()
-                .build();
+        Request request = createDeleteRequest(url);
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -370,13 +337,154 @@ public class PostDetailActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    runOnUiThread(() -> {
-                        comment.setHasLiked(false);
-                        comment.setLikeCount(comment.getLikeCount() - 1);
-                        updateCommentsUI();
-                    });
+                    updateCommentLikeStatusOnUiThread(comment, false, comment.getLikeCount() - 1);
                 }
             }
+        });
+    }
+
+    // 辅助方法
+    private Request createGetRequest(String url) {
+        return new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", authToken)
+                .build();
+    }
+
+    private Request createPostRequest(String url, RequestBody body) {
+        return new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", authToken)
+                .post(body)
+                .build();
+    }
+
+    private Request createDeleteRequest(String url) {
+        return new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", authToken)
+                .delete()
+                .build();
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showToastOnUiThread(String message) {
+        runOnUiThread(() -> showToast(message));
+    }
+
+    private void updatePostUIOnUiThread() {
+        runOnUiThread(this::updatePostUI);
+    }
+
+    private void loadUserAvatar(CircleImageView imageView, String avatarUrl) {
+        ImageUtils.loadUserAvatar(this, imageView, avatarUrl);
+    }
+
+    private void showPostImage() {
+        ivImage.setVisibility(View.VISIBLE);
+    }
+
+    private void hidePostImage() {
+        ivImage.setVisibility(View.GONE);
+    }
+
+    private void loadPostImage(ImageView imageView, String photoUrl) {
+        ImageUtils.loadPostImage(this, imageView, photoUrl);
+    }
+
+    private void updateCounters() {
+        tvLikeCount.setText(String.valueOf(currentPost.getLikeCount()));
+        tvCommentCount.setText(String.valueOf(currentPost.getCommentCount()));
+        tvShareCount.setText(String.valueOf(currentPost.getViewCount()));
+    }
+
+    private void updateCommentList(List<Comment> newComments) {
+        commentList.clear();
+        commentList.addAll(newComments);
+    }
+
+    private void updateCommentsUIOnUiThread() {
+        runOnUiThread(this::updateCommentsUI);
+    }
+
+    private void clearCommentsContainer() {
+        layoutCommentsContainer.removeAllViews();
+    }
+
+    private void addCommentsToContainer() {
+        for (Comment comment : commentList) {
+            View commentView = createCommentView(comment);
+            layoutCommentsContainer.addView(commentView);
+        }
+    }
+
+    private void setCommentData(CircleImageView avatar, TextView name, TextView content, TextView likeCount, Comment comment) {
+        name.setText(comment.getNickName());
+        content.setText(HtmlUtils.removeHtmlTags(comment.getCommentContent()));
+        likeCount.setText(String.valueOf(comment.getLikeCount()));
+        loadUserAvatar(avatar, comment.getUserAvatar());
+    }
+
+    private void setLikeButtonStatus(ImageView likeButton, Boolean hasLiked) {
+        if (hasLiked != null && hasLiked) {
+            likeButton.setImageResource(R.mipmap.ydz);
+        } else {
+            likeButton.setImageResource(R.mipmap.dz);
+        }
+    }
+
+    private void setupLikeClickListener(ImageView likeButton, Comment comment) {
+        likeButton.setOnClickListener(v -> onCommentLikeClicked(comment));
+    }
+
+    private void renderChildComments(LinearLayout container, List<Comment> children) {
+        if (children != null && !children.isEmpty()) {
+            for (Comment child : children) {
+                View childView = LayoutInflater.from(this).inflate(R.layout.activity_item_comment, null);
+
+                CircleImageView childAvatar = childView.findViewById(R.id.iv_user_avatar);
+                TextView childName = childView.findViewById(R.id.tv_user_name);
+                TextView childContent = childView.findViewById(R.id.tv_comment_content);
+                ImageView childLike = childView.findViewById(R.id.iv_like);
+                TextView childLikeCount = childView.findViewById(R.id.tv_like_count);
+
+                setCommentData(childAvatar, childName, childContent, childLikeCount, child);
+                setLikeButtonStatus(childLike, child.getHasLiked());
+                setupLikeClickListener(childLike, child);
+
+                container.addView(childView);
+            }
+        }
+    }
+
+    private Comment createNewComment(String content) {
+        Comment comment = new Comment();
+        comment.setPostId(postId);
+        comment.setCommentContent(content);
+        return comment;
+    }
+
+    private void clearCommentInput() {
+        etCommentInput.setText("");
+    }
+
+    private void refreshCommentsList() {
+        loadCommentsList();
+    }
+
+    private void updateCommentCounter() {
+        currentPost.setCommentCount(currentPost.getCommentCount() + 1);
+        tvCommentCount.setText(String.valueOf(currentPost.getCommentCount()));
+    }
+
+    private void updateCommentLikeStatusOnUiThread(Comment comment, boolean hasLiked, int likeCount) {
+        runOnUiThread(() -> {
+            comment.setHasLiked(hasLiked);
+            comment.setLikeCount(likeCount);
+            updateCommentsUI();
         });
     }
 

@@ -93,6 +93,16 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         setPostFlags(holder, post);
     }
 
+    private void updateLikeIcon(ImageView ivLike, Boolean hasLiked) {
+        if (hasLiked != null && hasLiked) {
+            ivLike.setImageResource(R.mipmap.ydz); // 已点赞图标
+        } else {
+            ivLike.setImageResource(R.mipmap.dz);  // 未点赞图标
+        }
+    }
+
+
+
     /**
      * 格式化浏览量显示
      * @param viewCount 浏览量
