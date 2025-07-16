@@ -219,64 +219,65 @@ public class UserManager {
         });
     }
 
-
-
     /**
-     * 用户注册
+     * 用户注册 - 改进版本
+     * 注册成功后不自动登录，只显示成功消息
      */
     public void register(String username, String nickname, String email, String phone, String password, UserOperationCallback callback) {
-        // 先进行唯一性检查
-        checkUniqueFields(username, email, phone, new UniqueCheckCallback() {
-            @Override
-            public void onAllUnique() {
-                executeRegister(username, nickname, email, phone, password, callback);
-            }
-
-            @Override
-            public void onUsernameExists() {
-                callback.onError("用户名已存在");
-            }
-
-            @Override
-            public void onEmailExists() {
-                callback.onError("邮箱已被使用");
-            }
-
-            @Override
-            public void onPhoneExists() {
-                callback.onError("手机号已被使用");
-            }
-
-            @Override
-            public void onCheckError(String error) {
-                callback.onError("验证失败: " + error);
-            }
-        });
-    }
-
-    /**
-     * 执行注册
-     */
-    private void executeRegister(String username, String nickname, String email, String phone, String password, UserOperationCallback callback) {
+        // 构建注册用户对象
         User user = new User();
         user.setUserName(username);
         user.setNickName(nickname);
         user.setEmail(TextUtils.isEmpty(email) ? null : email);
         user.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
+        user.setUserType("10");
         user.setPassword(password);
 
         userApiService.register(user, new ApiCallback<String>() {
             @Override
             public void onSuccess(String message) {
-                callback.onSuccess(message, null); // 传两个参数
+                // 注册成功，返回成功消息，不返回token
+                callback.onSuccess("注册成功！欢迎加入我们的游戏世界！", null);
             }
 
             @Override
             public void onError(String error) {
-                callback.onError("注册失败: " + error);
+                // 解析错误信息
+                String errorMessage = parseRegisterError(error);
+                callback.onError(errorMessage);
             }
         });
+    }
 
+    /**
+     * 解析注册错误信息
+     */
+    private String parseRegisterError(String error) {
+        if (error == null || error.isEmpty()) {
+            return "注册失败，请重试";
+        }
+
+        // 根据错误信息返回用户友好的提示
+        if (error.contains("Duplicate entry")) {
+            if (error.contains("uk_user_name")) {
+                return "用户名已存在";
+            } else if (error.contains("email")) {
+                return "邮箱已存在";
+            } else if (error.contains("phone")) {
+                return "手机号已存在";
+            }
+        }
+
+        // 其他常见错误
+        if (error.contains("用户名")) {
+            return "用户名已存在";
+        } else if (error.contains("邮箱")) {
+            return "邮箱已被使用";
+        } else if (error.contains("手机")) {
+            return "手机号已被使用";
+        }
+
+        return "注册失败，请重试";
     }
 
     /**
@@ -326,7 +327,7 @@ public class UserManager {
         userApiService.updateProfile(updateUser, token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                callback.onSuccess("个人信息更新成功",null);
+                callback.onSuccess("个人信息更新成功", null);
             }
 
             @Override
@@ -353,7 +354,7 @@ public class UserManager {
         userApiService.updatePassword(request, token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                callback.onSuccess("密码修改成功",null);
+                callback.onSuccess("密码修改成功", null);
             }
 
             @Override
@@ -371,7 +372,7 @@ public class UserManager {
 
         if (TextUtils.isEmpty(token)) {
             clearLoginInfo();
-            callback.onSuccess("已退出登录",null);
+            callback.onSuccess("已退出登录", null);
             return;
         }
 
@@ -379,85 +380,16 @@ public class UserManager {
             @Override
             public void onSuccess(String result) {
                 clearLoginInfo();
-                callback.onSuccess("已退出登录",null);
+                callback.onSuccess("已退出登录", null);
             }
 
             @Override
             public void onError(String error) {
                 // 即使服务器端登出失败，也清除本地数据
                 clearLoginInfo();
-                callback.onSuccess("已退出登录",null);
+                callback.onSuccess("已退出登录", null);
             }
         });
-    }
-
-    // ==================== 唯一性检查 ====================
-
-    /**
-     * 检查字段唯一性
-     */
-    private void checkUniqueFields(String username, String email, String phone, UniqueCheckCallback callback) {
-        // 检查用户名
-        userApiService.checkUserNameUnique(username, new ApiCallback<Boolean>() {
-            @Override
-            public void onSuccess(Boolean isUnique) {
-                if (!isUnique) {
-                    callback.onUsernameExists();
-                    return;
-                }
-
-                // 检查邮箱
-                if (!TextUtils.isEmpty(email)) {
-                    userApiService.checkEmailUnique(email, new ApiCallback<Boolean>() {
-                        @Override
-                        public void onSuccess(Boolean isUnique) {
-                            if (!isUnique) {
-                                callback.onEmailExists();
-                                return;
-                            }
-                            checkPhoneUnique(phone, callback);
-                        }
-
-                        @Override
-                        public void onError(String error) {
-                            callback.onCheckError(error);
-                        }
-                    });
-                } else {
-                    checkPhoneUnique(phone, callback);
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                callback.onCheckError(error);
-            }
-        });
-    }
-
-    /**
-     * 检查手机号唯一性
-     */
-    private void checkPhoneUnique(String phone, UniqueCheckCallback callback) {
-        if (!TextUtils.isEmpty(phone)) {
-            userApiService.checkPhoneUnique(phone, new ApiCallback<Boolean>() {
-                @Override
-                public void onSuccess(Boolean isUnique) {
-                    if (!isUnique) {
-                        callback.onPhoneExists();
-                    } else {
-                        callback.onAllUnique();
-                    }
-                }
-
-                @Override
-                public void onError(String error) {
-                    callback.onCheckError(error);
-                }
-            });
-        } else {
-            callback.onAllUnique();
-        }
     }
 
     // ==================== 工具方法 ====================
@@ -486,23 +418,11 @@ public class UserManager {
         void onError(String error);
     }
 
-
     /**
      * 用户信息回调接口
      */
     public interface UserInfoCallback {
         void onSuccess(User user);
         void onError(String error);
-    }
-
-    /**
-     * 唯一性检查回调接口
-     */
-    private interface UniqueCheckCallback {
-        void onAllUnique();
-        void onUsernameExists();
-        void onEmailExists();
-        void onPhoneExists();
-        void onCheckError(String error);
     }
 }

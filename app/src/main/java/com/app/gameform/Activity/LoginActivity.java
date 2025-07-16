@@ -135,7 +135,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String message, String token) {
                 runOnUiThread(() -> {
-                    // ✅ 保存 token
+                    // 保存 token
                     SharedPrefManager.getInstance(LoginActivity.this).saveToken(token);
 
                     showLoading(false);
@@ -143,7 +143,6 @@ public class LoginActivity extends AppCompatActivity {
                     navigateToMain();
                 });
             }
-
 
             @Override
             public void onError(String error) {
@@ -198,15 +197,14 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String message, String token) {
                 runOnUiThread(() -> {
-                    // ✅ 保存 token
-                    SharedPrefManager.getInstance(LoginActivity.this).saveToken(token);
-
                     showLoading(false);
                     Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
-                    navigateToMain();
+
+                    // 注册成功后，清空表单并切换到登录页面
+                    clearRegisterForm();
+                    switchToLogin();
                 });
             }
-
 
             @Override
             public void onError(String error) {
