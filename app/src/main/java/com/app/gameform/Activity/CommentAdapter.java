@@ -215,7 +215,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
 
     private void updateLikeStatus(ImageView likeButton, Boolean hasLiked) {
         if (hasLiked != null && hasLiked) {
-            likeButton.setImageResource(R.mipmap.dz); // 已点赞状态的图标
+            likeButton.setImageResource(R.mipmap.ydz); // 已点赞状态的图标
         } else {
             likeButton.setImageResource(R.mipmap.dz); // 未点赞状态的图标
         }

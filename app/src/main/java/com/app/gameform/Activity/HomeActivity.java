@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
 import com.app.gameform.domain.Post;
+import com.app.gameform.manager.PostLikeManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.BottomNavigationHelper;
@@ -363,26 +364,18 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     public void onUserClick(Post post, int position) {
         // 处理用户点击事件 - 跳转到用户资料页
         Toast.makeText(this, "点击了用户: " + post.getNickName(), Toast.LENGTH_SHORT).show();
-        // Intent intent = new Intent(this, UserProfileActivity.class);
-        // intent.putExtra("userId", post.getUserId());
-        // startActivity(intent);
     }
 
     @Override
     public void onCommentClick(Post post, int position) {
         // 处理评论点击事件 - 跳转到评论页面
         Toast.makeText(this, "点击了评论", Toast.LENGTH_SHORT).show();
-        // Intent intent = new Intent(this, CommentActivity.class);
-        // intent.putExtra("postId", post.getPostId());
-        // startActivity(intent);
     }
 
     @Override
     public void onViewClick(Post post, int position) {
-        // 修改：处理浏览按钮点击事件（原来的分享按钮）
-        // 可以显示浏览详情或者其他操作
+        // 处理浏览按钮点击事件（原来的分享按钮）
         Toast.makeText(this, "浏览量: " + post.getViewCount(), Toast.LENGTH_SHORT).show();
-        // 这里可以添加其他浏览相关的功能
     }
 
     @Override
@@ -393,31 +386,26 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     }
 
     // 实现PostAdapter.OnPostLikeListener接口
+    PostLikeManager likeManager = new PostLikeManager(this);
+
     @Override
     public void onLikeClick(Post post, int position) {
-        // 处理点赞点击事件
-        //Toast.makeText(this, "点赞了帖子", Toast.LENGTH_SHORT).show();
-
-        // 这里应该调用API进行点赞操作
-        ApiService.getInstance().likePost(post.getPostId(),
-                SharedPrefManager.getInstance(this).getToken(),
-                new ApiCallback<Boolean>() {
-                    @Override
-                    public void onSuccess(Boolean result) {
-                        if (result) {
-                            // 更新UI
-                            postAdapter.updateLikeStatus(position, true, post.getLikeCount() + 1);
-                        } else {
-                            Toast.makeText(HomeActivity.this, "点赞失败", Toast.LENGTH_SHORT);
-                        }
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        runOnUiThread(() -> {
-                        Toast.makeText(HomeActivity.this, "点赞失败: " + error, Toast.LENGTH_SHORT);
-                        });
-                    }
+        likeManager.handleLikeClick(post, position, new PostLikeManager.LikeStatusCallback() {
+            @Override
+            public void onUpdate(boolean hasLiked, int newLikeCount) {
+                runOnUiThread(() -> {
+                    postAdapter.updateLikeStatus(position, hasLiked, newLikeCount);
                 });
+            }
+
+            @Override
+            public void onFail(String errorMessage) {
+                // 可以额外处理失败逻辑，比如日志
+                Log.e("PostLikeManager", errorMessage);
+            }
+        });
     }
+
+
+
 }
