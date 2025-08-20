@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.app.gameform.Activity.AddActivity;
 import com.app.gameform.Activity.CircleActivity;
 import com.app.gameform.Activity.HomeActivity;
+import com.app.gameform.Activity.NewPostActivity;
 import com.app.gameform.Activity.NotificationActivity;
 import com.app.gameform.Activity.ProfileActivity;
 import com.app.gameform.R;
@@ -61,13 +62,36 @@ public class BottomNavigationHelper {
         profileText = bottomNavigationView.findViewById(R.id.nav_profile_text);
     }
 
+
     private void setupClickListeners() {
         navHome.setOnClickListener(v -> navigateToActivity(HomeActivity.class));
         navDynamic.setOnClickListener(v -> navigateToActivity(CircleActivity.class));
-        navAdd.setOnClickListener(v -> navigateToActivity(AddActivity.class));
+
+        navAdd.setOnClickListener(v -> {
+            if (context instanceof AddActivity) {
+                // AddActivity 页面，单击直接跳转 NewPostActivity
+                Intent intent = new Intent(context, NewPostActivity.class);
+                context.startActivity(intent);
+            } else {
+                // 非 AddActivity 页面，单击跳转 AddActivity
+                navigateToActivity(AddActivity.class);
+            }
+        });
+
+        // 长按处理
+        navAdd.setOnLongClickListener(v -> {
+            // 非 AddActivity 页面，长按500ms跳转 NewPostActivity
+            Intent intent = new Intent(context, NewPostActivity.class);
+            context.startActivity(intent);
+            return true; // 返回 true 表示事件已消费，不触发点击事件
+        });
+
         navLike.setOnClickListener(v -> navigateToActivity(NotificationActivity.class));
         navProfile.setOnClickListener(v -> navigateToActivity(ProfileActivity.class));
     }
+
+
+
 
     private void navigateToActivity(Class<?> activityClass) {
         // 如果当前页面就是目标页面，不做任何操作

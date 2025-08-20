@@ -5,7 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="#F8F9FA"
+    android:fitsSystemWindows="true">  <!-- 顶层布局避开系统窗口 -->
 
     <!-- 顶部工具栏 -->
     <LinearLayout
@@ -17,6 +18,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
+        android:fitsSystemWindows="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -35,13 +37,11 @@
             android:clickable="true"
             android:focusable="true" />
 
-        <!-- 标题区域 -->
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
 
-        <!-- 发布按钮 -->
         <TextView
             android:id="@+id/btn_publish"
             android:layout_width="wrap_content"
@@ -59,20 +59,21 @@
 
     <!-- 主内容区域 -->
     <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toTopOf="@id/bottom_toolbar"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/white"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:background="@android:color/white">
 
             <!-- 选择话题区域 -->
             <LinearLayout
@@ -103,8 +104,23 @@
                     android:textColor="#CCCCCC"
                     android:textSize="16sp"
                     android:textStyle="bold" />
-
             </LinearLayout>
+
+            <!-- 标题输入框 -->
+            <EditText
+                android:id="@+id/et_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="输入标题..."
+                android:background="@android:color/transparent"
+                android:textColor="#333333"
+                android:textSize="18sp"
+                android:paddingBottom="12dp"
+                android:inputType="textCapSentences"
+                android:singleLine="true"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColorHint="#CCCCCC" />
 
             <!-- 内容输入区域 -->
             <EditText
@@ -119,8 +135,8 @@
                 android:lineSpacingExtra="6dp"
                 android:padding="0dp"
                 android:textColorHint="#CCCCCC"
-                android:textSize="16sp"
                 android:textColor="#333333"
+                android:textSize="16sp"
                 tools:ignore="Autofill" />
 
             <!-- 已选图片展示区域 -->
@@ -130,11 +146,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:visibility="gone"
-                tools:visibility="visible"
                 tools:listitem="@layout/item_selected_image" />
 
         </LinearLayout>
-
     </ScrollView>
 
     <!-- 底部工具栏 -->
@@ -148,10 +162,9 @@
         android:orientation="horizontal"
         android:paddingHorizontal="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 插入图片按钮 -->
         <TextView
             android:id="@+id/btn_insert_image"
             android:layout_width="wrap_content"
@@ -164,7 +177,6 @@
             android:textColor="#007AFF"
             android:textSize="14sp" />
 
-        <!-- 字体样式按钮 -->
         <TextView
             android:id="@+id/btn_font_style"
             android:layout_width="wrap_content"
@@ -178,7 +190,6 @@
             android:textColor="#007AFF"
             android:textSize="14sp" />
 
-        <!-- 外部链接按钮 -->
         <TextView
             android:id="@+id/btn_external_link"
             android:layout_width="wrap_content"
@@ -192,7 +203,6 @@
             android:textColor="#007AFF"
             android:textSize="14sp" />
 
-        <!-- 空白区域，让按钮左对齐 -->
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"

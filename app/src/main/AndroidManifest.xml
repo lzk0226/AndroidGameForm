@@ -44,6 +44,8 @@
             android:exported="false"/>
         <activity android:name=".Activity.PostDetailActivity"
             android:exported="false"/>
+        <activity android:name=".Activity.NewPostActivity"
+            android:exported="false"/>
         <activity
             android:name=".Activity.MainActivity"
             android:exported="true">
