@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F8F9FA">
+
+    <!-- 顶部工具栏 -->
+    <LinearLayout
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:background="@android:color/white"
+        android:elevation="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- 关闭按钮 -->
+        <TextView
+            android:id="@+id/btn_close"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:text="×"
+            android:textColor="#333333"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- 标题区域 -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- 发布按钮 -->
+        <TextView
+            android:id="@+id/btn_publish"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:background="@drawable/btn_publish_selector"
+            android:enabled="false"
+            android:gravity="center"
+            android:minWidth="64dp"
+            android:paddingHorizontal="16dp"
+            android:text="发布"
+            android:textColor="#090909"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- 主内容区域 -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/bottom_toolbar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- 选择话题区域 -->
+            <LinearLayout
+                android:id="@+id/layout_topic_selector"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/topic_selector_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tv_selected_topic"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="#选择话题"
+                    android:textColor="#999999"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=">"
+                    android:textColor="#CCCCCC"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- 内容输入区域 -->
+            <EditText
+                android:id="@+id/et_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="300dp"
+                android:background="@android:color/transparent"
+                android:gravity="top"
+                android:hint="输入内容..."
+                android:inputType="textMultiLine"
+                android:lineSpacingExtra="6dp"
+                android:padding="0dp"
+                android:textColorHint="#CCCCCC"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                tools:ignore="Autofill" />
+
+            <!-- 已选图片展示区域 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_selected_images"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                tools:visibility="visible"
+                tools:listitem="@layout/item_selected_image" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- 底部工具栏 -->
+    <LinearLayout
+        android:id="@+id/bottom_toolbar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:background="@android:color/white"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- 插入图片按钮 -->
+        <TextView
+            android:id="@+id/btn_insert_image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="插入图片"
+            android:textColor="#007AFF"
+            android:textSize="14sp" />
+
+        <!-- 字体样式按钮 -->
+        <TextView
+            android:id="@+id/btn_font_style"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="字体样式"
+            android:textColor="#007AFF"
+            android:textSize="14sp" />
+
+        <!-- 外部链接按钮 -->
+        <TextView
+            android:id="@+id/btn_external_link"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="外部链接"
+            android:textColor="#007AFF"
+            android:textSize="14sp" />
+
+        <!-- 空白区域，让按钮左对齐 -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

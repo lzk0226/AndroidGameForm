@@ -1,7 +1,8 @@
 package com.app.gameform.network;
 
 public class ApiConstants {
-    public static final String BASE_URL = "http://192.168.124.12:8080";
+    //public static final String BASE_URL = "http://110.41.1.63:8080";
+    public static final String BASE_URL = "http://10.0.2.2:8080";
     public static final String USER_PUBLIC_BASE_URL = BASE_URL + "/user/public/";
     public static final String POST_LIKE_URL = BASE_URL + "/user/post/like/";
     public static final String USER_UPDATE_PROFILE_URL = BASE_URL + "/update";

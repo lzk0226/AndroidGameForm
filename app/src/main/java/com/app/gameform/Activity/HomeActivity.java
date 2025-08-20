@@ -9,7 +9,6 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,12 +17,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
+import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Post;
 import com.app.gameform.manager.PostLikeManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.BottomNavigationHelper;
-import com.app.gameform.utils.SharedPrefManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;

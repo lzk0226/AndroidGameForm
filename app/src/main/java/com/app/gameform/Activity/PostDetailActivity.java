@@ -20,6 +20,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.app.gameform.R;
+import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Comment;
 import com.app.gameform.domain.Post;
 import com.app.gameform.manager.PostLikeManager;
