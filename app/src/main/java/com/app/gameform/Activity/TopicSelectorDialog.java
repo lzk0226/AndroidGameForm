@@ -271,6 +271,10 @@ public class TopicSelectorDialog extends Dialog {
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             TextView textView = new TextView(getContext());
+            // ✅ 设置宽度为MATCH_PARENT，确保背景色能填满整行
+            textView.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
             textView.setPadding(32, 24, 32, 24);
             textView.setTextSize(16);
             textView.setTextColor(Color.parseColor("#333333"));
@@ -330,36 +334,22 @@ public class TopicSelectorDialog extends Dialog {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            LinearLayout layout = new LinearLayout(getContext());
-            layout.setOrientation(LinearLayout.HORIZONTAL);
-            layout.setPadding(32, 16, 32, 16);
-            layout.setGravity(Gravity.CENTER_VERTICAL);
-
-            // 图标占位符
-            TextView iconView = new TextView(getContext());
-            iconView.setText("icon");
-            iconView.setTextSize(12);
-            iconView.setTextColor(Color.parseColor("#999999"));
-            iconView.setPadding(16, 8, 16, 8);
-            iconView.setGravity(Gravity.CENTER);
-
-            GradientDrawable iconBg = new GradientDrawable();
-            iconBg.setColor(Color.parseColor("#F5F5F5"));
-            iconBg.setCornerRadius(8);
-            iconView.setBackground(iconBg);
-
-            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(80, 60);
-            iconParams.setMargins(0, 0, 24, 0);
-            layout.addView(iconView, iconParams);
-
-            // 游戏名称
             TextView nameView = new TextView(getContext());
+            // ✅ 设置宽度为MATCH_PARENT，确保背景色能填满整行
+            nameView.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            nameView.setPadding(32, 24, 32, 24);
             nameView.setTextSize(16);
             nameView.setTextColor(Color.parseColor("#333333"));
-            layout.addView(nameView, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            nameView.setGravity(Gravity.CENTER_VERTICAL);
 
-            return new ViewHolder(layout, iconView, nameView);
+            // 创建背景drawable
+            GradientDrawable background = new GradientDrawable();
+            background.setColor(Color.TRANSPARENT);
+            nameView.setBackground(background);
+
+            return new ViewHolder(nameView);
         }
 
         @Override
@@ -378,9 +368,9 @@ public class TopicSelectorDialog extends Dialog {
                 background.setColor(Color.TRANSPARENT);
                 holder.nameView.setTextColor(Color.parseColor("#333333"));
             }
-            holder.layout.setBackground(background);
+            holder.nameView.setBackground(background);
 
-            holder.layout.setOnClickListener(v -> {
+            holder.nameView.setOnClickListener(v -> {
                 selectedGame = game;
                 notifyDataSetChanged();
                 updateSections(game.getGameId());
@@ -393,13 +383,10 @@ public class TopicSelectorDialog extends Dialog {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            LinearLayout layout;
-            TextView iconView, nameView;
+            TextView nameView;
 
-            ViewHolder(LinearLayout layout, TextView iconView, TextView nameView) {
-                super(layout);
-                this.layout = layout;
-                this.iconView = iconView;
+            ViewHolder(TextView nameView) {
+                super(nameView);
                 this.nameView = nameView;
             }
         }
@@ -411,36 +398,22 @@ public class TopicSelectorDialog extends Dialog {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            LinearLayout layout = new LinearLayout(getContext());
-            layout.setOrientation(LinearLayout.HORIZONTAL);
-            layout.setPadding(32, 16, 32, 16);
-            layout.setGravity(Gravity.CENTER_VERTICAL);
-
-            // 图标占位符
-            TextView iconView = new TextView(getContext());
-            iconView.setText("icon");
-            iconView.setTextSize(12);
-            iconView.setTextColor(Color.parseColor("#999999"));
-            iconView.setPadding(16, 8, 16, 8);
-            iconView.setGravity(Gravity.CENTER);
-
-            GradientDrawable iconBg = new GradientDrawable();
-            iconBg.setColor(Color.parseColor("#F5F5F5"));
-            iconBg.setCornerRadius(8);
-            iconView.setBackground(iconBg);
-
-            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(80, 60);
-            iconParams.setMargins(0, 0, 24, 0);
-            layout.addView(iconView, iconParams);
-
-            // 版块名称
             TextView nameView = new TextView(getContext());
+            // ✅ 设置宽度为MATCH_PARENT，确保背景色能填满整行
+            nameView.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            nameView.setPadding(32, 24, 32, 24);
             nameView.setTextSize(16);
             nameView.setTextColor(Color.parseColor("#333333"));
-            layout.addView(nameView, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            nameView.setGravity(Gravity.CENTER_VERTICAL);
 
-            return new ViewHolder(layout, iconView, nameView);
+            // 创建背景drawable
+            GradientDrawable background = new GradientDrawable();
+            background.setColor(Color.TRANSPARENT);
+            nameView.setBackground(background);
+
+            return new ViewHolder(nameView);
         }
 
         @Override
@@ -459,9 +432,9 @@ public class TopicSelectorDialog extends Dialog {
                 background.setColor(Color.TRANSPARENT);
                 holder.nameView.setTextColor(Color.parseColor("#333333"));
             }
-            holder.layout.setBackground(background);
+            holder.nameView.setBackground(background);
 
-            holder.layout.setOnClickListener(v -> {
+            holder.nameView.setOnClickListener(v -> {
                 selectedSection = section;
                 notifyDataSetChanged();
 
@@ -479,13 +452,10 @@ public class TopicSelectorDialog extends Dialog {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            LinearLayout layout;
-            TextView iconView, nameView;
+            TextView nameView;
 
-            ViewHolder(LinearLayout layout, TextView iconView, TextView nameView) {
-                super(layout);
-                this.layout = layout;
-                this.iconView = iconView;
+            ViewHolder(TextView nameView) {
+                super(nameView);
                 this.nameView = nameView;
             }
         }
