@@ -15,46 +15,58 @@
         android:elevation="2dp"
         android:layout_marginBottom="1dp">
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroupGameTypes"
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical">
+            android:scrollbars="none"
+            android:fadeScrollbars="true"
+            android:overScrollMode="never">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipAll"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupGameTypes"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="所有"
-                android:checkable="true"
-                android:checked="true"
-                style="@style/Widget.MaterialComponents.Chip.Filter" />
+                android:layout_gravity="center_vertical"
+                app:singleLine="true"
+                app:chipSpacing="8dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipRts"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Rts"
-                android:checkable="true"
-                style="@style/Widget.MaterialComponents.Chip.Filter" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="所有"
+                    android:checkable="true"
+                    android:checked="true"
+                    style="@style/Widget.MaterialComponents.Chip.Filter" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipFps"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Fps"
-                android:checkable="true"
-                style="@style/Widget.MaterialComponents.Chip.Filter" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipRts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Rts"
+                    android:checkable="true"
+                    style="@style/Widget.MaterialComponents.Chip.Filter" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipOpenWorld"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="开放世界"
-                android:checkable="true"
-                style="@style/Widget.MaterialComponents.Chip.Filter" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipFps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fps"
+                    android:checkable="true"
+                    style="@style/Widget.MaterialComponents.Chip.Filter" />
 
-        </com.google.android.material.chip.ChipGroup>
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipOpenWorld"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="开放世界"
+                    android:checkable="true"
+                    style="@style/Widget.MaterialComponents.Chip.Filter" />
+
+            </com.google.android.material.chip.ChipGroup>
+
+        </HorizontalScrollView>
 
     </LinearLayout>
 
