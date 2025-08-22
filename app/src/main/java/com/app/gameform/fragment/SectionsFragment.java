@@ -4,23 +4,40 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.app.gameform.R;
 import com.app.gameform.adapter.SectionAdapter;
 import com.app.gameform.domain.Section;
+import com.app.gameform.network.ApiConstants;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class SectionsFragment extends Fragment {
+    private static final String TAG = "SectionsFragment";
+
     private EditText etSearch;
     private Button btnSearch;
     private RecyclerView rvSections;
@@ -28,15 +45,21 @@ public class SectionsFragment extends Fragment {
     private List<Section> sectionList;
     private List<Section> filteredSectionList;
 
+    private RequestQueue requestQueue;
+    private String currentSearchKeyword = "";
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_sections, container, false);
 
+        // 初始化RequestQueue
+        requestQueue = Volley.newRequestQueue(requireContext());
+
         initViews(view);
         setupRecyclerView();
-        loadSections();
         setupSearch();
+        loadSections();
 
         return view;
     }
@@ -53,10 +76,11 @@ public class SectionsFragment extends Fragment {
 
         sectionAdapter = new SectionAdapter(filteredSectionList);
         sectionAdapter.setOnItemClickListener(section -> {
-            // 跳转到板块详情页面
+            // 跳转到版块详情页面
             // Intent intent = new Intent(getActivity(), SectionDetailActivity.class);
             // intent.putExtra("sectionId", section.getSectionId());
             // startActivity(intent);
+            Toast.makeText(getContext(), "版块: " + section.getSectionName(), Toast.LENGTH_SHORT).show();
         });
 
         rvSections.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -70,7 +94,8 @@ public class SectionsFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterSections(s.toString());
+                currentSearchKeyword = s.toString().trim();
+                performSearch();
             }
 
             @Override
@@ -78,75 +103,270 @@ public class SectionsFragment extends Fragment {
         });
 
         btnSearch.setOnClickListener(v -> {
-            String searchText = etSearch.getText().toString().trim();
-            filterSections(searchText);
+            currentSearchKeyword = etSearch.getText().toString().trim();
+            performSearch();
         });
     }
 
-    private void filterSections(String query) {
+    /**
+     * 执行搜索
+     */
+    private void performSearch() {
+        if (currentSearchKeyword.isEmpty()) {
+            // 如果搜索关键词为空，显示所有版块
+            filteredSectionList.clear();
+            filteredSectionList.addAll(sectionList);
+            sectionAdapter.notifyDataSetChanged();
+        } else {
+            // 执行搜索
+            searchSections(currentSearchKeyword);
+        }
+    }
+
+    /**
+     * 加载所有版块
+     */
+    private void loadSections() {
+        String url = ApiConstants.GET_ALL_SECTIONS;
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            int code = response.getInt("code");
+                            if (code == 200) {
+                                JSONArray dataArray = response.getJSONArray("data");
+                                sectionList = parseSections(dataArray);
+
+                                // 如果当前没有搜索关键词，显示所有版块
+                                if (currentSearchKeyword.isEmpty()) {
+                                    filteredSectionList.clear();
+                                    filteredSectionList.addAll(sectionList);
+                                    sectionAdapter.notifyDataSetChanged();
+                                }
+                            } else {
+                                String msg = response.optString("msg", "加载版块列表失败");
+                                showError(msg);
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "解析版块数据失败", e);
+                            showError("数据解析失败");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(TAG, "加载版块列表失败", error);
+                        showError("网络错误，请检查网络连接");
+                    }
+                });
+
+        requestQueue.add(request);
+    }
+
+    /**
+     * 搜索版块
+     */
+    private void searchSections(String keyword) {
+        String url = ApiConstants.BASE_URL + "/user/section/search?name=" + keyword;
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            int code = response.getInt("code");
+                            if (code == 200) {
+                                JSONArray dataArray = response.getJSONArray("data");
+                                List<Section> searchResults = parseSections(dataArray);
+
+                                filteredSectionList.clear();
+                                filteredSectionList.addAll(searchResults);
+                                sectionAdapter.notifyDataSetChanged();
+                            } else {
+                                String msg = response.optString("msg", "搜索失败");
+                                showError(msg);
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "解析搜索结果失败", e);
+                            showError("数据解析失败");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(TAG, "搜索版块失败", error);
+                        // 搜索失败时，执行本地筛选
+                        performLocalSearch(keyword);
+                    }
+                });
+
+        requestQueue.add(request);
+    }
+
+    /**
+     * 本地搜索（当服务器搜索失败时的备用方案）
+     */
+    private void performLocalSearch(String keyword) {
         filteredSectionList.clear();
 
-        if (query.isEmpty()) {
-            filteredSectionList.addAll(sectionList);
-        } else {
-            for (Section section : sectionList) {
-                // 使用domain层的属性名
-                if (section.getSectionName().toLowerCase().contains(query.toLowerCase()) ||
-                        section.getSectionDescription().toLowerCase().contains(query.toLowerCase())) {
-                    filteredSectionList.add(section);
-                }
+        for (Section section : sectionList) {
+            if (section.getSectionName().toLowerCase().contains(keyword.toLowerCase()) ||
+                    section.getSectionDescription().toLowerCase().contains(keyword.toLowerCase()) ||
+                    (section.getGameName() != null && section.getGameName().toLowerCase().contains(keyword.toLowerCase()))) {
+                filteredSectionList.add(section);
             }
         }
 
         sectionAdapter.notifyDataSetChanged();
     }
 
-    private void loadSections() {
-        // 模拟数据，实际应该从API加载
-        sectionList.clear();
+    /**
+     * 解析版块数据
+     */
+    private List<Section> parseSections(JSONArray dataArray) {
+        List<Section> sections = new ArrayList<>();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
-        // 创建Section对象，使用domain层的属性
-        Section section1 = new Section();
-        section1.setSectionId(1);
-        section1.setSectionName("魔兽世界讨论区");
-        section1.setSectionDescription("讨论魔兽世界游戏经验，副本攻略，PVP技巧等");
-        section1.setGameId(1);
-        section1.setGameName("魔兽世界");
-        sectionList.add(section1);
+        try {
+            for (int i = 0; i < dataArray.length(); i++) {
+                JSONObject sectionObj = dataArray.getJSONObject(i);
 
-        Section section2 = new Section();
-        section2.setSectionId(2);
-        section2.setSectionName("英雄联盟讨论区");
-        section2.setSectionDescription("讨论英雄联盟游戏经验，英雄攻略，排位心得等");
-        section2.setGameId(2);
-        section2.setGameName("英雄联盟");
-        sectionList.add(section2);
+                Section section = new Section();
+                section.setSectionId(sectionObj.optInt("sectionId"));
+                section.setSectionName(sectionObj.optString("sectionName"));
+                section.setSectionDescription(sectionObj.optString("sectionDescription"));
+                section.setGameId(sectionObj.optInt("gameId"));
+                section.setGameName(sectionObj.optString("gameName"));
+                section.setOrderNum(sectionObj.optInt("orderNum"));
+                section.setRemark(sectionObj.optString("remark"));
 
-        Section section3 = new Section();
-        section3.setSectionId(3);
-        section3.setSectionName("原神讨论区");
-        section3.setSectionDescription("讨论原神游戏经验，角色培养，世界探索等");
-        section3.setGameId(6);
-        section3.setGameName("原神");
-        sectionList.add(section3);
+                // 解析创建时间
+                String createTimeStr = sectionObj.optString("createTime");
+                if (!createTimeStr.isEmpty()) {
+                    try {
+                        Date createTime = dateFormat.parse(createTimeStr);
+                        section.setCreateTime(createTime);
+                    } catch (Exception e) {
+                        Log.w(TAG, "解析创建时间失败: " + createTimeStr, e);
+                    }
+                }
 
-        Section section4 = new Section();
-        section4.setSectionId(4);
-        section4.setSectionName("王者荣耀讨论区");
-        section4.setSectionDescription("讨论王者荣耀游戏经验，英雄出装，上分技巧等");
-        section4.setGameId(7);
-        section4.setGameName("王者荣耀");
-        sectionList.add(section4);
+                sections.add(section);
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "解析版块数据失败", e);
+        }
 
-        Section section5 = new Section();
-        section5.setSectionId(5);
-        section5.setSectionName("绝地求生讨论区");
-        section5.setSectionDescription("讨论绝地求生游戏经验，吃鸡技巧，装备选择等");
-        section5.setGameId(8);
-        section5.setGameName("绝地求生");
-        sectionList.add(section5);
+        return sections;
+    }
 
+    /**
+     * 根据游戏ID加载版块
+     */
+    public void loadSectionsByGameId(Integer gameId) {
+        String url = ApiConstants.BASE_URL + "/user/section/game/" + gameId;
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            int code = response.getInt("code");
+                            if (code == 200) {
+                                JSONArray dataArray = response.getJSONArray("data");
+                                List<Section> gameSections = parseSections(dataArray);
+
+                                filteredSectionList.clear();
+                                filteredSectionList.addAll(gameSections);
+                                sectionAdapter.notifyDataSetChanged();
+                            } else {
+                                String msg = response.optString("msg", "加载版块列表失败");
+                                showError(msg);
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "解析版块数据失败", e);
+                            showError("数据解析失败");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(TAG, "根据游戏加载版块失败", error);
+                        showError("网络错误，请检查网络连接");
+                    }
+                });
+
+        requestQueue.add(request);
+    }
+
+    /**
+     * 获取热门版块
+     */
+    private void loadHotSections() {
+        String url = ApiConstants.BASE_URL + "/user/section/hot?limit=5";
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            int code = response.getInt("code");
+                            if (code == 200) {
+                                JSONArray dataArray = response.getJSONArray("data");
+                                List<Section> hotSections = parseSections(dataArray);
+
+                                // 可以在这里处理热门版块的显示逻辑
+                                // 比如在列表顶部显示热门版块
+                                Log.d(TAG, "获取到 " + hotSections.size() + " 个热门版块");
+                            } else {
+                                String msg = response.optString("msg", "加载热门版块失败");
+                                Log.w(TAG, msg);
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "解析热门版块数据失败", e);
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(TAG, "加载热门版块失败", error);
+                    }
+                });
+
+        requestQueue.add(request);
+    }
+
+    /**
+     * 显示错误信息
+     */
+    private void showError(String message) {
+        if (getActivity() != null) {
+            Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 清空搜索
+     */
+    public void clearSearch() {
+        etSearch.setText("");
+        currentSearchKeyword = "";
+        filteredSectionList.clear();
         filteredSectionList.addAll(sectionList);
         sectionAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (requestQueue != null) {
+            requestQueue.cancelAll(TAG);
+        }
     }
 }

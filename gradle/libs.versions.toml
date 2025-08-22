@@ -11,6 +11,7 @@ scenecore = "1.0.0-alpha04"
 gson = "2.10.1"
 common = "18.11.0"
 swiperefreshlayout = "1.1.0"
+volley = "1.2.1"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -24,6 +25,7 @@ scenecore = { group = "androidx.xr.scenecore", name = "scenecore", version.ref =
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 common = { group = "com.google.mlkit", name = "common", version.ref = "common" }
 swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
+volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

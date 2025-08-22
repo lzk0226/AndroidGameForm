@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.scenecore)
     implementation(libs.common)
     implementation(libs.swiperefreshlayout)
+    implementation(libs.volley)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

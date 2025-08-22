@@ -5,4 +5,7 @@
     <color name="light_gray">#FFFFFF</color>
     <color name="tab_active_color">#007AFF</color>
     <color name="tab_inactive_color">#666666</color>
+    <color name="chip_selected_color">#2196F3</color>      <!-- 蓝色，选中状态 -->
+    <color name="chip_default_color">#FFFFFF</color>       <!-- 白色，默认状态 -->
+    <color name="chip_text_default_color">#666666</color>  <!-- 默认文字颜色 -->
 </resources>
