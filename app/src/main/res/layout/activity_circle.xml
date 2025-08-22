@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -7,58 +8,46 @@
     android:background="#F5F5F5"
     android:fitsSystemWindows="true">
 
-    <!-- 顶部标题栏 -->
-    <LinearLayout
-        android:id="@+id/titleLayout"
+    <!-- TabLayout - 版块和游戏切换 -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="48dp"
         android:background="@android:color/white"
-        android:orientation="horizontal"
-        android:elevation="4dp"
-        android:gravity="center"
+        android:elevation="2dp"
+        app:tabGravity="fill"
+        app:tabMode="fixed"
+        app:tabIndicatorColor="#007bff"
+        app:tabSelectedTextColor="#007bff"
+        app:tabTextColor="#666666"
+        app:tabIndicatorHeight="3dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
+        <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="圈子"
-            android:textColor="#333333"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:text="版块" />
 
-    </LinearLayout>
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="游戏" />
 
-    <!-- 内容区域 -->
-    <LinearLayout
+    </com.google.android.material.tabs.TabLayout>
+
+    <!-- ViewPager2 - 滑动切换内容 -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:orientation="vertical"
-        android:gravity="center"
         app:layout_constraintBottom_toTopOf="@+id/bottomNavigationInclude"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/titleLayout">
+        app:layout_constraintTop_toBottomOf="@+id/tabLayout" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="圈子页面"
-            android:textColor="#666666"
-            android:textSize="16sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="功能开发中..."
-            android:textColor="#999999"
-            android:textSize="14sp" />
-
-    </LinearLayout>
-
-    <!-- 底部导航栏 - 使用include引用 -->
+    <!-- 底部导航栏 - 使用include引用，固定在底部，不受软键盘影响 -->
     <include
         android:id="@+id/bottomNavigationInclude"
         layout="@layout/bottom_navigation"

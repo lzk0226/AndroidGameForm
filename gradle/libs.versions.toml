@@ -10,6 +10,7 @@ constraintlayout = "2.2.1"
 scenecore = "1.0.0-alpha04"
 gson = "2.10.1"
 common = "18.11.0"
+swiperefreshlayout = "1.1.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -22,6 +23,7 @@ constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayo
 scenecore = { group = "androidx.xr.scenecore", name = "scenecore", version.ref = "scenecore" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 common = { group = "com.google.mlkit", name = "common", version.ref = "common" }
+swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
