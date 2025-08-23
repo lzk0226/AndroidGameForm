@@ -17,7 +17,7 @@
             android:id="@+id/iv_user_avatar"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@mipmap/ic_launcher_round" />
+            android:src="@drawable/ic_default_avatar" />
 
         <TextView
             android:id="@+id/tv_user_name"
