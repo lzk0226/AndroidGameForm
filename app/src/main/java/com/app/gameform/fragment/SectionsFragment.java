@@ -22,6 +22,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.app.gameform.Activity.SectionDetailActivity;
 import com.app.gameform.R;
 import com.app.gameform.adapter.SectionAdapter;
 import com.app.gameform.domain.Section;
@@ -76,11 +77,13 @@ public class SectionsFragment extends Fragment {
 
         sectionAdapter = new SectionAdapter(filteredSectionList);
         sectionAdapter.setOnItemClickListener(section -> {
-            // 跳转到版块详情页面
-            // Intent intent = new Intent(getActivity(), SectionDetailActivity.class);
-            // intent.putExtra("sectionId", section.getSectionId());
-            // startActivity(intent);
-            Toast.makeText(getContext(), "版块: " + section.getSectionName(), Toast.LENGTH_SHORT).show();
+            // 跳转到版块详情页面 - 取消注释并修复
+            Intent intent = new Intent(getActivity(), SectionDetailActivity.class);
+            intent.putExtra("section_id", section.getSectionId()); // 注意这里使用 section_id，与 SectionDetailActivity 中期望的参数名一致
+            startActivity(intent);
+
+            // 可选：添加日志用于调试
+            Log.d(TAG, "点击版块: " + section.getSectionName() + ", ID: " + section.getSectionId());
         });
 
         rvSections.setLayoutManager(new LinearLayoutManager(getContext()));

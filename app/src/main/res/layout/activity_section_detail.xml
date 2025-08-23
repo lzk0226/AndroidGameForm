@@ -5,7 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:fitsSystemWindows="true">
 
     <!-- 透明返回按钮 -->
     <TextView
@@ -22,7 +23,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 板块信息区域 -->
+    <!-- 版块信息区域 -->
     <LinearLayout
         android:id="@+id/ll_section_info"
         android:layout_width="match_parent"
@@ -36,24 +37,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 游戏图标 -->
-        <androidx.cardview.widget.CardView
+        <!-- 游戏图标 - 改为CircleImageView -->
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/iv_game_icon"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            android:src="@mipmap/ic_launcher"
+            app:civ_border_width="2dp"
+            app:civ_border_color="#E0E0E0"
+            tools:src="@drawable/ic_launcher_foreground" />
 
-            <ImageView
-                android:id="@+id/iv_game_icon"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@mipmap/ic_launcher"
-                tools:src="@drawable/ic_launcher_foreground" />
-
-        </androidx.cardview.widget.CardView>
-
-        <!-- 板块信息 -->
+        <!-- 版块信息 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -66,7 +60,7 @@
                 android:id="@+id/tv_section_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="板块名称"
+                android:text="版块名称"
                 android:textColor="#333333"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -168,7 +162,7 @@
                 android:layout_marginHorizontal="16dp" />
 
             <!-- 帖子列表 -->
-            <androidx.viewpager2.widget.ViewPager2
+            <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/vp_posts"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"

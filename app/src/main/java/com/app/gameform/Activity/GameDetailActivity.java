@@ -121,11 +121,16 @@ public class GameDetailActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         sectionAdapter = new SectionAdapter(sectionList);
         sectionAdapter.setOnItemClickListener(section -> {
-            // 跳转到版块详情页面或帖子列表页面
-            //Intent intent = new Intent(GameDetailActivity.this, SectionDetailActivity.class);
-            //intent.putExtra("sectionId", section.getSectionId());
-            //intent.putExtra("sectionName", section.getSectionName());
-            //startActivity(intent);
+            // 跳转到版块详情页面
+            Intent intent = new Intent(GameDetailActivity.this, SectionDetailActivity.class);
+            intent.putExtra("section_id", section.getSectionId());
+            intent.putExtra("section_name", section.getSectionName());
+            // 传递游戏相关信息
+            if (currentGame != null) {
+                intent.putExtra("game_id", currentGame.getGameId());
+                intent.putExtra("game_name", currentGame.getGameName());
+            }
+            startActivity(intent);
         });
 
         rvSectionsList.setLayoutManager(new LinearLayoutManager(this));

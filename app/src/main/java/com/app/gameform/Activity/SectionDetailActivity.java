@@ -1,75 +1,127 @@
-/*
 package com.app.gameform.Activity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.app.gameform.R;
+import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Game;
+import com.app.gameform.domain.Post;
 import com.app.gameform.domain.Section;
+import com.app.gameform.manager.PostLikeManager;
+import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiConstants;
-import com.bumptech.glide.Glide;
+import com.app.gameform.network.ApiService;
+import com.app.gameform.utils.ImageUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import org.json.JSONObject;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import de.hdodenhof.circleimageview.CircleImageView;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+public class SectionDetailActivity extends AppCompatActivity implements PostAdapter.OnPostClickListener, PostAdapter.OnPostLikeListener {
 
-public class SectionDetailActivity extends AppCompatActivity {
+    private static final String TAG = "SectionDetailActivity";
+    private static final String PREFS_NAME = "SectionDetailPrefs";
+    private static final String KEY_SCROLL_POSITION = "scroll_position_";
+    private static final String KEY_CURRENT_TAB = "current_tab_";
+    private static final int PAGE_SIZE = 5;
 
-    // UI组件
+    // Views
     private TextView tvBack;
-    private ImageView ivGameIcon;
+    private CircleImageView ivGameIcon;
     private TextView tvSectionName;
     private TextView tvSectionDescription;
     private TextView tvPost;
     private TextView tvHot;
     private TextView tvLatest;
-    private ViewPager2 vpPosts;
+    private RecyclerView recyclerView;
 
-    // 数据
-    private Section section;
-    private Game game; // 关联的游戏信息
+    // Data
     private Integer sectionId;
-    private OkHttpClient okHttpClient;
-    private SectionPostPagerAdapter postPagerAdapter;
+    private Section sectionInfo;
+    private Game gameInfo;
+    private PostAdapter postAdapter;
+    private List<Post> postList;
+    private String currentTab = "hot"; // "hot" 或 "latest"
+    private boolean isLoading = false;
+    private boolean hasMore = true;
+    private int currentPage = 1;
+
+    // Cache
+    private SharedPreferences prefs;
+    private Map<String, List<Post>> dataCache = new HashMap<>();
+    private Map<String, Integer> scrollPositionCache = new HashMap<>();
+
+    // Like manager
+    private PostLikeManager likeManager;
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_section_detail);
 
-        // 获取传递的板块ID
-        sectionId = getIntent().getIntExtra("sectionId", -1);
-        if (sectionId == -1) {
-            Toast.makeText(this, "板块ID不能为空", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
+        try {
+            // 初始化数据
+            sectionId = getIntent().getIntExtra("section_id", -1);
+            if (sectionId == -1) {
+                Toast.makeText(this, "板块参数错误", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
 
-        initViews();
-        initClient();
-        loadSectionDetail();
+            // 初始化SharedPreferences和管理器
+            prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            likeManager = new PostLikeManager(this);
+
+            // 恢复上次选中的标签
+            currentTab = prefs.getString(KEY_CURRENT_TAB + sectionId, "hot");
+
+            // 初始化Views
+            initViews();
+            setupRecyclerView();
+            setupClickListeners();
+
+            // 设置当前标签并加载数据
+            switchTab(currentTab);
+            loadSectionInfo();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onCreate: " + e.getMessage(), e);
+            Toast.makeText(this, "页面加载失败", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveScrollPosition();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        restoreScrollPosition();
     }
 
     private void initViews() {
@@ -80,233 +132,461 @@ public class SectionDetailActivity extends AppCompatActivity {
         tvPost = findViewById(R.id.tv_post);
         tvHot = findViewById(R.id.tv_hot);
         tvLatest = findViewById(R.id.tv_latest);
-        vpPosts = findViewById(R.id.vp_posts);
 
-        // 设置点击事件
+        // 修改这里：给RecyclerView一个新的ID，或者在布局中添加一个RecyclerView
+        // 方案1：如果你已经按照上面的布局修改了，那么这行代码保持不变
+        recyclerView = findViewById(R.id.vp_posts);
+
+        // 方案2：如果你要保持ViewPager2，那么需要在布局中添加一个新的RecyclerView
+        // recyclerView = findViewById(R.id.rv_posts); // 需要在布局中添加这个ID的RecyclerView
+
+        postList = new ArrayList<>();
+    }
+
+    private void setupRecyclerView() {
+        postAdapter = new PostAdapter(this, postList);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(postAdapter);
+
+        // 设置监听器
+        postAdapter.setOnPostClickListener(this);
+        postAdapter.setOnPostLikeListener(this);
+
+        // 设置滚动监听，实现懒加载
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                if (dy > 0) { // 向下滚动
+                    LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                    if (layoutManager != null) {
+                        int visibleItemCount = layoutManager.getChildCount();
+                        int totalItemCount = layoutManager.getItemCount();
+                        int firstVisibleItem = layoutManager.findFirstVisibleItemPosition();
+
+                        if (!isLoading && hasMore && (visibleItemCount + firstVisibleItem) >= totalItemCount - 2) {
+                            loadMorePosts();
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private void setupClickListeners() {
+        // 返回按钮
         tvBack.setOnClickListener(v -> finish());
 
+        // 发帖按钮
         tvPost.setOnClickListener(v -> {
-            // 跳转到发帖页面
-            Intent intent = new Intent(this, CreatePostActivity.class);
-            intent.putExtra("sectionId", sectionId);
-            if (game != null) {
-                intent.putExtra("gameId", game.getGameId());
+            Intent intent = new Intent(this, NewPostActivity.class);
+            intent.putExtra("section_id", sectionId);
+            if (sectionInfo != null) {
+                intent.putExtra("section_name", sectionInfo.getSectionName());
             }
             startActivity(intent);
         });
 
-        // 设置帖子类型切换
-        tvHot.setOnClickListener(v -> switchPostType("hot"));
-        tvLatest.setOnClickListener(v -> switchPostType("latest"));
+        // 最热标签
+        tvHot.setOnClickListener(v -> {
+            if (!"hot".equals(currentTab)) {
+                saveScrollPosition();
+                switchTab("hot");
+                loadPostDataWithCache("hot");
+                saveCurrentTab("hot");
+            }
+        });
 
-        // 初始化帖子ViewPager
-        setupPostViewPager();
+        // 最新标签
+        tvLatest.setOnClickListener(v -> {
+            if (!"latest".equals(currentTab)) {
+                saveScrollPosition();
+                switchTab("latest");
+                loadPostDataWithCache("latest");
+                saveCurrentTab("latest");
+            }
+        });
     }
 
-    private void initClient() {
-        okHttpClient = new OkHttpClient();
+    private void switchTab(String tab) {
+        // 重置所有标签样式
+        tvHot.setTextColor(Color.parseColor("#999999"));
+        tvHot.setTypeface(null, Typeface.NORMAL);
+        tvLatest.setTextColor(Color.parseColor("#999999"));
+        tvLatest.setTypeface(null, Typeface.NORMAL);
+
+        currentTab = tab;
+
+        // 设置选中标签样式
+        if ("hot".equals(tab)) {
+            tvHot.setTextColor(Color.parseColor("#333333"));
+            tvHot.setTypeface(null, Typeface.BOLD);
+        } else {
+            tvLatest.setTextColor(Color.parseColor("#333333"));
+            tvLatest.setTypeface(null, Typeface.BOLD);
+        }
     }
 
-    private void loadSectionDetail() {
-        String url = ApiConstants.buildUrlWithParam(ApiConstants.GET_SECTION_DETAIL, String.valueOf(sectionId));
+    private void loadSectionInfo() {
+        String url = ApiConstants.buildUrlWithParam(ApiConstants.GET_SECTION_DETAIL, sectionId.toString());
 
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
-
-        okHttpClient.newCall(request).enqueue(new Callback() {
+        ApiService.getInstance().getRequest(url, new ApiCallback<String>() {
             @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+            public void onSuccess(String response) {
                 runOnUiThread(() -> {
-                    Toast.makeText(SectionDetailActivity.this, "网络请求失败，请稍后重试", Toast.LENGTH_SHORT).show();
+                    try {
+                        // 解析响应
+                        ApiResponse<Section> apiResponse = parseApiResponse(response, Section.class);
+                        if (apiResponse != null && apiResponse.getCode() == 200) {
+                            sectionInfo = apiResponse.getData();
+                            updateSectionUI();
+
+                            // 如果有关联的游戏ID，加载游戏信息
+                            if (sectionInfo.getGameId() != null) {
+                                loadGameInfo(sectionInfo.getGameId());
+                            }
+
+                            // 加载帖子数据
+                            loadPostDataWithCache(currentTab);
+                        } else {
+                            Toast.makeText(SectionDetailActivity.this, "加载板块信息失败", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Parse section info error: " + e.getMessage(), e);
+                        Toast.makeText(SectionDetailActivity.this, "解析板块信息失败", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    String responseBody = response.body().string();
-                    try {
-                        JSONObject jsonObject = new JSONObject(responseBody);
-                        if (jsonObject.getInt("code") == 200) {
-                            JSONObject data = jsonObject.getJSONObject("data");
-                            section = parseSectionFromJson(data);
-
-                            runOnUiThread(() -> {
-                                updateUI();
-                                // 如果有游戏ID，加载游戏图标
-                                if (section.getGameId() != null) {
-                                    loadGameIcon(section.getGameId());
-                                }
-                            });
-                        } else {
-                            runOnUiThread(() -> {
-                                String msg = jsonObject.optString("msg", "获取板块信息失败");
-                                Toast.makeText(SectionDetailActivity.this, msg, Toast.LENGTH_SHORT).show();
-                            });
-                        }
-                    } catch (Exception e) {
-                        runOnUiThread(() -> {
-                            Toast.makeText(SectionDetailActivity.this, "数据解析失败", Toast.LENGTH_SHORT).show();
-                        });
-                    }
-                }
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Log.e(TAG, "Load section info error: " + error);
+                    Toast.makeText(SectionDetailActivity.this, "加载板块信息失败: " + error, Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
 
-    private void loadGameIcon(Integer gameId) {
-        String url = ApiConstants.buildUrlWithParam(ApiConstants.GET_GAME_DETAIL, String.valueOf(gameId));
+    private void loadGameInfo(Integer gameId) {
+        String url = ApiConstants.buildUrlWithParam(ApiConstants.GET_GAME_DETAIL, gameId.toString());
 
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
-
-        okHttpClient.newCall(request).enqueue(new Callback() {
+        ApiService.getInstance().getRequest(url, new ApiCallback<String>() {
             @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                // 图标加载失败不影响主要功能，只是显示默认图标
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    try {
+                        ApiResponse<Game> apiResponse = parseApiResponse(response, Game.class);
+                        if (apiResponse != null && apiResponse.getCode() == 200) {
+                            gameInfo = apiResponse.getData();
+                            updateGameIcon();
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Parse game info error: " + e.getMessage(), e);
+                    }
+                });
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    String responseBody = response.body().string();
-                    try {
-                        JSONObject jsonObject = new JSONObject(responseBody);
-                        if (jsonObject.getInt("code") == 200) {
-                            JSONObject data = jsonObject.getJSONObject("data");
-                            game = parseGameFromJson(data);
-
-                            runOnUiThread(() -> {
-                                updateGameIcon();
-                            });
-                        }
-                    } catch (Exception e) {
-                        // 忽略解析错误
-                    }
-                }
+            public void onError(String error) {
+                Log.e(TAG, "Load game info error: " + error);
             }
         });
     }
 
-    private Section parseSectionFromJson(JSONObject data) throws Exception {
-        Section section = new Section();
-        section.setSectionId(data.optInt("sectionId"));
-        section.setSectionName(data.optString("sectionName"));
-        section.setSectionDescription(data.optString("sectionDescription"));
-        section.setGameId(data.optInt("gameId"));
-        section.setGameName(data.optString("gameName"));
-        section.setOrderNum(data.optInt("orderNum"));
-        section.setRemark(data.optString("remark"));
+    private void updateSectionUI() {
+        if (sectionInfo == null) return;
 
-        // 解析创建时间
-        String createTimeStr = data.optString("createTime");
-        if (!createTimeStr.isEmpty()) {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                Date createTime = sdf.parse(createTimeStr);
-                section.setCreateTime(createTime);
-            } catch (Exception e) {
-                section.setCreateTime(new Date());
-            }
+        tvSectionName.setText(sectionInfo.getSectionName() != null ? sectionInfo.getSectionName() : "未知板块");
+
+        if (sectionInfo.getSectionDescription() != null && !sectionInfo.getSectionDescription().trim().isEmpty()) {
+            tvSectionDescription.setText(sectionInfo.getSectionDescription());
+            tvSectionDescription.setVisibility(View.VISIBLE);
+        } else {
+            tvSectionDescription.setVisibility(View.GONE);
         }
-
-        return section;
-    }
-
-    private Game parseGameFromJson(JSONObject data) throws Exception {
-        Game game = new Game();
-        game.setGameId(data.optInt("gameId"));
-        game.setGameName(data.optString("gameName"));
-        game.setGameDescription(data.optString("gameDescription"));
-        game.setGameIcon(data.optString("gameIcon"));
-        return game;
-    }
-
-    private void updateUI() {
-        if (section == null) return;
-
-        // 设置板块基本信息
-        tvSectionName.setText(section.getSectionName());
-
-        // 设置板块描述
-        String description = section.getSectionDescription();
-        if (description == null || description.trim().isEmpty()) {
-            if (section.getGameName() != null) {
-                description = section.getGameName() + "讨论区";
-            } else {
-                description = "游戏讨论区";
-            }
-        }
-        tvSectionDescription.setText(description);
     }
 
     private void updateGameIcon() {
-        if (game != null && game.getGameIcon() != null && !game.getGameIcon().isEmpty()) {
-            String iconUrl = ApiConstants.getFullImageUrl(game.getGameIcon());
-            Glide.with(this)
-                    .load(iconUrl)
-                    .placeholder(R.mipmap.ic_launcher)
-                    .error(R.mipmap.ic_launcher)
-                    .into(ivGameIcon);
+        if (gameInfo != null && gameInfo.getGameIcon() != null) {
+            ImageUtils.loadUserAvatar(this, ivGameIcon, gameInfo.getGameIcon());
         }
     }
 
-    private void setupPostViewPager() {
-        postPagerAdapter = new SectionPostPagerAdapter(this, sectionId);
-        vpPosts.setAdapter(postPagerAdapter);
+    private void loadPostDataWithCache(String type) {
+        // 检查是否有缓存数据
+        List<Post> cachedData = dataCache.get(type);
+        if (cachedData != null && !cachedData.isEmpty()) {
+            // 使用缓存数据
+            postList.clear();
+            postList.addAll(cachedData);
+            postAdapter.notifyDataSetChanged();
+            restoreScrollPosition();
 
-        // 默认选中最热
-        switchPostType("hot");
-    }
-
-    private void switchPostType(String type) {
-        // 更新UI状态
-        if ("hot".equals(type)) {
-            tvHot.setTextColor(getResources().getColor(android.R.color.black));
-            tvHot.setTypeface(null, android.graphics.Typeface.BOLD);
-            tvLatest.setTextColor(getResources().getColor(android.R.color.darker_gray));
-            tvLatest.setTypeface(null, android.graphics.Typeface.NORMAL);
+            // 可选：在后台刷新数据
+            refreshDataInBackground(type);
         } else {
-            tvLatest.setTextColor(getResources().getColor(android.R.color.black));
-            tvLatest.setTypeface(null, android.graphics.Typeface.BOLD);
-            tvHot.setTextColor(getResources().getColor(android.R.color.darker_gray));
-            tvHot.setTypeface(null, android.graphics.Typeface.NORMAL);
-        }
-
-        // 更新帖子列表
-        postPagerAdapter.switchPostType(type);
-    }
-
-    // 板块帖子ViewPager适配器
-    private static class SectionPostPagerAdapter extends FragmentStateAdapter {
-        private String currentPostType = "hot";
-        private Integer sectionId;
-
-        public SectionPostPagerAdapter(@NonNull FragmentActivity fragmentActivity, Integer sectionId) {
-            super(fragmentActivity);
-            this.sectionId = sectionId;
-        }
-
-        @NonNull
-        @Override
-        public Fragment createFragment(int position) {
-            // 创建板块帖子列表Fragment
-            SectionPostListFragment fragment = SectionPostListFragment.newInstance(sectionId, currentPostType);
-            return fragment;
-        }
-
-        @Override
-        public int getItemCount() {
-            return 1; // 只有一个Fragment
-        }
-
-        public void switchPostType(String type) {
-            this.currentPostType = type;
-            notifyDataSetChanged();
+            // 没有缓存，加载新数据
+            loadPosts(type, true);
         }
     }
-}*/
+
+    private void refreshDataInBackground(String type) {
+        loadPostsFromServer(type, 1, new ApiCallback<List<Post>>() {
+            @Override
+            public void onSuccess(List<Post> posts) {
+                runOnUiThread(() -> {
+                    // 更新缓存
+                    dataCache.put(type, new ArrayList<>(posts));
+
+                    // 如果当前标签页还是这个类型，更新UI
+                    if (currentTab.equals(type)) {
+                        postList.clear();
+                        postList.addAll(posts);
+                        postAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                // 后台刷新失败不显示错误，保持用户体验
+                Log.e(TAG, "Background refresh failed: " + error);
+            }
+        });
+    }
+
+    private void loadPosts(String type, boolean reset) {
+        if (isLoading) return;
+
+        if (reset) {
+            currentPage = 1;
+            hasMore = true;
+        }
+
+        isLoading = true;
+
+        loadPostsFromServer(type, currentPage, new ApiCallback<List<Post>>() {
+            @Override
+            public void onSuccess(List<Post> posts) {
+                runOnUiThread(() -> {
+                    isLoading = false;
+
+                    if (reset) {
+                        // 更新缓存
+                        dataCache.put(type, new ArrayList<>(posts));
+
+                        postList.clear();
+                        postList.addAll(posts);
+                        postAdapter.notifyDataSetChanged();
+                        restoreScrollPosition();
+                    } else {
+                        // 添加到现有列表
+                        int oldSize = postList.size();
+                        postList.addAll(posts);
+                        postAdapter.notifyItemRangeInserted(oldSize, posts.size());
+
+                        // 更新缓存
+                        List<Post> cachedData = dataCache.get(type);
+                        if (cachedData != null) {
+                            cachedData.addAll(posts);
+                        }
+                    }
+
+                    // 判断是否还有更多数据
+                    hasMore = posts.size() == PAGE_SIZE;
+                    if (hasMore) {
+                        currentPage++;
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    isLoading = false;
+                    Toast.makeText(SectionDetailActivity.this, "加载帖子失败: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void loadMorePosts() {
+        if (!isLoading && hasMore) {
+            loadPosts(currentTab, false);
+        }
+    }
+
+    private void loadPostsFromServer(String type, int page, ApiCallback<List<Post>> callback) {
+        String url = getPostsUrl(type, page);
+
+        ApiService.getInstance().getRequest(url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<List<Post>> apiResponse = parseApiListResponse(response, Post.class);
+                    if (apiResponse != null && apiResponse.getCode() == 200) {
+                        List<Post> posts = apiResponse.getData();
+                        callback.onSuccess(posts != null ? posts : new ArrayList<>());
+                    } else {
+                        callback.onError("服务器返回错误");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Parse posts error: " + e.getMessage(), e);
+                    callback.onError("解析数据失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private String getPostsUrl(String type, int page) {
+        String baseUrl;
+        if ("hot".equals(type)) {
+            baseUrl = ApiConstants.GET_HOT_POSTS + "?limit=" + PAGE_SIZE + "&page=" + page;
+            // 如果是热门帖子，也需要按板块过滤
+            baseUrl += "&sectionId=" + sectionId;
+        } else {
+            baseUrl = ApiConstants.buildUrlWithParam(ApiConstants.GET_POSTS_BY_SECTION, sectionId.toString());
+            baseUrl += "?page=" + page + "&size=" + PAGE_SIZE + "&sort=latest";
+        }
+        return baseUrl;
+    }
+
+    private void saveCurrentTab(String tab) {
+        prefs.edit().putString(KEY_CURRENT_TAB + sectionId, tab).apply();
+    }
+
+    private void saveScrollPosition() {
+        LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+        if (layoutManager != null) {
+            int position = layoutManager.findFirstVisibleItemPosition();
+            scrollPositionCache.put(currentTab, position);
+            prefs.edit().putInt(KEY_SCROLL_POSITION + sectionId + "_" + currentTab, position).apply();
+        }
+    }
+
+    private void restoreScrollPosition() {
+        Integer position = scrollPositionCache.get(currentTab);
+        if (position == null) {
+            position = prefs.getInt(KEY_SCROLL_POSITION + sectionId + "_" + currentTab, 0);
+        }
+
+        if (position > 0 && position < postList.size()) {
+            recyclerView.scrollToPosition(position);
+        }
+    }
+
+    // PostAdapter.OnPostClickListener 实现
+    @Override
+    public void onPostClick(Post post, int position) {
+        Intent intent = new Intent(this, PostDetailActivity.class);
+        intent.putExtra("post_id", post.getPostId());
+        startActivity(intent);
+    }
+
+    @Override
+    public void onUserClick(Post post, int position) {
+        Toast.makeText(this, "点击了用户: " + post.getNickName(), Toast.LENGTH_SHORT).show();
+        // 可以跳转到用户资料页
+    }
+
+    @Override
+    public void onCommentClick(Post post, int position) {
+        // 跳转到帖子详情页的评论区
+        Intent intent = new Intent(this, PostDetailActivity.class);
+        intent.putExtra("post_id", post.getPostId());
+        intent.putExtra("show_comments", true);
+        startActivity(intent);
+    }
+
+    @Override
+    public void onViewClick(Post post, int position) {
+        Toast.makeText(this, "浏览量: " + post.getViewCount(), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onMoreClick(Post post, int position) {
+        Toast.makeText(this, "点击了更多", Toast.LENGTH_SHORT).show();
+        // 可以显示更多操作菜单
+    }
+
+    // PostAdapter.OnPostLikeListener 实现
+    @Override
+    public void onLikeClick(Post post, int position) {
+        likeManager.handleLikeClick(post, position, new PostLikeManager.LikeStatusCallback() {
+            @Override
+            public void onUpdate(boolean hasLiked, int newLikeCount) {
+                runOnUiThread(() -> {
+                    postAdapter.updateLikeStatus(position, hasLiked, newLikeCount);
+                });
+            }
+
+            @Override
+            public void onFail(String errorMessage) {
+                Log.e(TAG, "Like operation failed: " + errorMessage);
+            }
+        });
+    }
+
+    // 辅助方法：解析API响应
+    private <T> ApiResponse<T> parseApiResponse(String jsonResponse, Class<T> dataClass) {
+        try {
+            Gson gson = ApiService.getInstance().getGson(); // 使用 ApiService 的 Gson 实例
+            Type type = TypeToken.getParameterized(ApiResponse.class, dataClass).getType();
+            return gson.fromJson(jsonResponse, type);
+        } catch (Exception e) {
+            Log.e(TAG, "Parse API response error: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private <T> ApiResponse<List<T>> parseApiListResponse(String jsonResponse, Class<T> dataClass) {
+        try {
+            Gson gson = ApiService.getInstance().getGson(); // 使用 ApiService 的 Gson 实例
+            Type listType = TypeToken.getParameterized(List.class, dataClass).getType();
+            Type responseType = TypeToken.getParameterized(ApiResponse.class, listType).getType();
+            return gson.fromJson(jsonResponse, responseType);
+        } catch (Exception e) {
+            Log.e(TAG, "Parse API list response error: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // API响应包装类
+    private static class ApiResponse<T> {
+        private int code;
+        private String msg;
+        private T data;
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+
+        public String getMsg() {
+            return msg;
+        }
+
+        public void setMsg(String msg) {
+            this.msg = msg;
+        }
+
+        public T getData() {
+            return data;
+        }
+
+        public void setData(T data) {
+            this.data = data;
+        }
+    }
+}
