@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.app.gameform.R;
 import com.app.gameform.domain.Game;
+import com.app.gameform.utils.ImageUtils;
 import java.util.List;
 
 public class GameAdapter extends RecyclerView.Adapter<GameAdapter.GameViewHolder> {
@@ -65,12 +66,19 @@ public class GameAdapter extends RecyclerView.Adapter<GameAdapter.GameViewHolder
         }
 
         public void bind(Game game) {
+            // 设置游戏名称
             tvGameName.setText(game.getGameName());
-            // 如果使用网络图片，可以用Glide或Picasso加载
-            // Glide.with(itemView.getContext()).load(game.getGameIcon()).into(ivGameIcon);
 
-            // 暂时使用占位符，实际项目中根据 game.getGameIcon() 加载图片
-            //ivGameIcon.setImageResource(R.drawable.ic_game_placeholder);
+            // 加载游戏图标 - 参考GameDetailActivity的加载方式
+            String iconUrl = game.getGameIcon();
+            if (iconUrl != null && !iconUrl.isEmpty() && !"null".equals(iconUrl)) {
+                // 使用 ImageUtils 加载图片，和 GameDetailActivity 中的方式一致
+                ImageUtils.loadImage(itemView.getContext(), ivGameIcon, iconUrl,
+                        R.drawable.bg_button_primary, R.drawable.bg_button_primary);
+            } else {
+                // 设置默认占位图
+                ivGameIcon.setImageResource(R.drawable.bg_button_primary);
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.app.gameform.Activity.GameDetailActivity;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.app.gameform.R;
@@ -82,10 +83,12 @@ public class GamesFragment extends Fragment {
         gameAdapter = new GameAdapter(filteredGameList);
         gameAdapter.setOnItemClickListener(game -> {
             // 跳转到游戏详情页面
-            // Intent intent = new Intent(getActivity(), GameDetailActivity.class);
-            // intent.putExtra("gameId", game.getGameId());
-            // startActivity(intent);
-            Toast.makeText(getContext(), "游戏: " + game.getGameName(), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(getActivity(), GameDetailActivity.class);
+            intent.putExtra("gameId", game.getGameId());
+            startActivity(intent);
+
+            // 可以保留这个Toast作为调试信息，或者删除
+            // Toast.makeText(getContext(), "游戏: " + game.getGameName(), Toast.LENGTH_SHORT).show();
         });
 
         // 使用网格布局，每行2个

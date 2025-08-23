@@ -5,32 +5,43 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:fitsSystemWindows="true">
 
-    <!-- 透明返回按钮 -->
-    <TextView
-        android:id="@+id/tv_back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="&lt;返回"
-        android:textColor="#333333"
-        android:textSize="16sp"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- 可滑动的游戏图片 -->
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/vp_game_images"
+    <!-- 图片区域和返回按钮的容器 -->
+    <FrameLayout
+        android:id="@+id/fl_header_container"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/tv_back"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 可滑动的游戏图片 -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/vp_game_images"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- 返回按钮覆盖在图片上方 -->
+        <TextView
+            android:id="@+id/tv_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|top"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_acrylic_button"
+            android:clickable="true"
+            android:drawablePadding="4dp"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:padding="9dp"
+            android:text="&lt; 返回"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+    </FrameLayout>
 
     <!-- 游戏信息区域 -->
     <LinearLayout
@@ -41,7 +52,7 @@
         android:padding="16dp"
         android:background="#FFFFFF"
         android:layout_marginTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/vp_game_images"
+        app:layout_constraintTop_toBottomOf="@id/fl_header_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -124,152 +135,34 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- 帖子板块区域 -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cv_posts_section"
+    <!-- 版块列表标题 -->
+    <TextView
+        android:id="@+id/tv_sections_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="相关版块"
+        android:textColor="#333333"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cv_description" />
+
+    <!-- 版块列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_sections_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/cv_description"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/tv_sections_title"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <!-- 板块标题和发帖按钮 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp">
-
-                <!-- 游戏图标 -->
-                <androidx.cardview.widget.CardView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="1dp">
-
-                    <ImageView
-                        android:id="@+id/iv_section_icon"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:src="@mipmap/ic_launcher"
-                        tools:src="@drawable/ic_launcher_foreground" />
-
-                </androidx.cardview.widget.CardView>
-
-                <!-- 板块信息 -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="12dp">
-
-                    <TextView
-                        android:id="@+id/tv_section_name"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="板块名称"
-                        android:textColor="#333333"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        tools:text="王者荣耀" />
-
-                    <TextView
-                        android:id="@+id/tv_section_description"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="简介"
-                        android:textColor="#999999"
-                        android:textSize="12sp"
-                        android:layout_marginTop="2dp"
-                        tools:text="游戏讨论区" />
-
-                </LinearLayout>
-
-                <!-- 发帖按钮 -->
-                <TextView
-                    android:id="@+id/tv_post"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/btn_publish_selector"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="8dp"
-                    android:text="发帖"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-
-            </LinearLayout>
-
-            <!-- 最热/最新切换标签 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:id="@+id/tv_hot"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="最热"
-                    android:textColor="#333333"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground" />
-
-                <TextView
-                    android:id="@+id/tv_latest"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="最新"
-                    android:textColor="#999999"
-                    android:textSize="14sp"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="8dp"
-                    android:layout_marginStart="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground" />
-
-            </LinearLayout>
-
-            <!-- 分隔线 -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#F0F0F0"
-                android:layout_marginHorizontal="16dp" />
-
-            <!-- 帖子列表 -->
-            <androidx.viewpager2.widget.ViewPager2
-                android:id="@+id/vp_posts"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-        </LinearLayout>
-
-    </androidx.cardview.widget.CardView>
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:listitem="@layout/item_section" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -46,6 +46,8 @@
             android:exported="false"/>
         <activity android:name=".Activity.NewPostActivity"
             android:exported="false"/>
+        <activity android:name=".Activity.GameDetailActivity"
+            android:exported="false"/>
         <activity
             android:name=".Activity.MainActivity"
             android:exported="true">

@@ -20,7 +20,7 @@
             android:layout_height="120dp"
             android:background="#E0E0E0"
             android:scaleType="centerCrop"
-            android:src="@mipmap/cywl" />
+            android:src="@drawable/bg_button_primary" />
 
         <!-- 游戏信息 -->
         <LinearLayout
