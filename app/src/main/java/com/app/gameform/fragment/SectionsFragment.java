@@ -229,7 +229,8 @@ public class SectionsFragment extends Fragment {
      */
     private List<Section> parseSections(JSONArray dataArray) {
         List<Section> sections = new ArrayList<>();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        // 注意：pattern 要包含 T 和毫秒、时区
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault());
 
         try {
             for (int i = 0; i < dataArray.length(); i++) {
@@ -248,7 +249,9 @@ public class SectionsFragment extends Fragment {
                 String createTimeStr = sectionObj.optString("createTime");
                 if (!createTimeStr.isEmpty()) {
                     try {
-                        Date createTime = dateFormat.parse(createTimeStr);
+                        // 去掉时区里的冒号，例如 +08:00 → +0800
+                        String fixedTimeStr = createTimeStr.replaceAll(":(?=[0-9]{2}$)", "");
+                        Date createTime = dateFormat.parse(fixedTimeStr);
                         section.setCreateTime(createTime);
                     } catch (Exception e) {
                         Log.w(TAG, "解析创建时间失败: " + createTimeStr, e);
@@ -263,6 +266,7 @@ public class SectionsFragment extends Fragment {
 
         return sections;
     }
+
 
     /**
      * 根据游戏ID加载版块

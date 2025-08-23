@@ -192,7 +192,7 @@ public class GameDetailActivity extends AppCompatActivity {
                         JSONObject gameData = json.optJSONObject("data");
                         if (gameData != null) {
                             // 添加详细的字段日志
-                            Log.d(TAG, "=== 游戏数据详细信息 ===");
+                            /*Log.d(TAG, "=== 游戏数据详细信息 ===");
                             Log.d(TAG, "gameId: " + gameData.optInt("gameId"));
                             Log.d(TAG, "gameName: " + gameData.optString("gameName"));
                             Log.d(TAG, "gameDescription: " + gameData.optString("gameDescription"));
@@ -203,7 +203,7 @@ public class GameDetailActivity extends AppCompatActivity {
                             Log.d(TAG, "images字段: " + gameData.optString("images"));
 
                             // 打印所有字段名
-                            Log.d(TAG, "所有可用字段:");
+                            Log.d(TAG, "所有可用字段:");*/
                             Iterator<String> keys = gameData.keys();
                             while (keys.hasNext()) {
                                 String key = keys.next();

@@ -333,7 +333,7 @@ public class GamesFragment extends Fragment {
      */
     private List<GameType> parseGameTypes(JSONArray dataArray) {
         List<GameType> gameTypes = new ArrayList<>();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault());
 
         try {
             for (int i = 0; i < dataArray.length(); i++) {
@@ -348,7 +348,9 @@ public class GamesFragment extends Fragment {
                 String createTimeStr = gameTypeObj.optString("createTime");
                 if (!createTimeStr.isEmpty()) {
                     try {
-                        Date createTime = dateFormat.parse(createTimeStr);
+                        // 去掉时区里的冒号，例如 +08:00 → +0800
+                        String fixedTimeStr = createTimeStr.replaceAll(":(?=[0-9]{2}$)", "");
+                        Date createTime = dateFormat.parse(fixedTimeStr);
                         gameType.setCreateTime(createTime);
                     } catch (Exception e) {
                         Log.w(TAG, "解析创建时间失败: " + createTimeStr, e);
@@ -364,12 +366,13 @@ public class GamesFragment extends Fragment {
         return gameTypes;
     }
 
+
     /**
      * 解析游戏数据
      */
     private List<Game> parseGames(JSONArray dataArray) {
         List<Game> games = new ArrayList<>();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault());
 
         try {
             for (int i = 0; i < dataArray.length(); i++) {
@@ -389,7 +392,9 @@ public class GamesFragment extends Fragment {
                 String createTimeStr = gameObj.optString("createTime");
                 if (!createTimeStr.isEmpty()) {
                     try {
-                        Date createTime = dateFormat.parse(createTimeStr);
+                        // 去掉时区里的冒号  (把 +08:00 → +0800)
+                        String fixedTimeStr = createTimeStr.replaceAll(":(?=[0-9]{2}$)", "");
+                        Date createTime = dateFormat.parse(fixedTimeStr);
                         game.setCreateTime(createTime);
                     } catch (Exception e) {
                         Log.w(TAG, "解析创建时间失败: " + createTimeStr, e);
@@ -404,6 +409,7 @@ public class GamesFragment extends Fragment {
 
         return games;
     }
+
 
     /**
      * 显示错误信息
