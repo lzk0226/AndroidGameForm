@@ -53,7 +53,6 @@ public class ApiService {
                     private final SimpleDateFormat[] dateFormats = {
                             // 添加服务器实际使用的格式（放在前面，优先匹配）
                             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
-                            // 原有格式保持不变
                             new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
                             new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault()),
                             new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault()),

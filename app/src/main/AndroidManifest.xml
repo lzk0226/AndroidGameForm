@@ -50,6 +50,8 @@
             android:exported="false"/>
         <activity android:name=".Activity.SectionDetailActivity"
             android:exported="false"/>
+        <activity android:name=".Activity.SearchResultActivity"
+            android:exported="false"/>
         <activity
             android:name=".Activity.MainActivity"
             android:exported="true">

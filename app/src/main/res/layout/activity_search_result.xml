@@ -170,21 +170,6 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp" />
 
-            <TextView
-                android:id="@+id/tab_game_type"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:minWidth="80dp"
-                android:gravity="center"
-                android:text="游戏类型 (0)"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp" />
-
         </LinearLayout>
 
     </HorizontalScrollView>
@@ -254,7 +239,36 @@
             android:paddingTop="8dp"
             android:paddingBottom="16dp"
             android:scrollbars="vertical"
-            tools:listitem="@layout/item_post" />
+            tools:listitem="@layout/item_post"
+            tools:ignore="UnusedAttribute" />
+
+        <!-- 游戏搜索结果列表 (隐藏状态) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_games_results"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp"
+            android:scrollbars="vertical"
+            android:visibility="gone"
+            tools:listitem="@layout/item_game"
+            tools:ignore="UnusedAttribute" />
+
+        <!-- 版块搜索结果列表 (隐藏状态) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_boards_results"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp"
+            android:scrollbars="vertical"
+            android:visibility="gone"
+            tools:listitem="@layout/item_section"
+            tools:ignore="UnusedAttribute" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
@@ -276,9 +290,9 @@
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@mipmap/ic_launcher"
+            android:layout_marginBottom="24dp"
             android:alpha="0.3"
-            android:layout_marginBottom="24dp" />
+            android:src="@mipmap/jg" />
 
         <TextView
             android:layout_width="wrap_content"

@@ -85,42 +85,54 @@ public class SearchActivity extends AppCompatActivity {
         hotSearch1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fillSearchBox("人工智能");
+                String searchText = "人工智能";
+                fillSearchBox(searchText);
+                performSearch(searchText); // 直接搜索热门词汇
             }
         });
 
         hotSearch2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fillSearchBox("区块链");
+                String searchText = "区块链";
+                fillSearchBox(searchText);
+                performSearch(searchText); // 直接搜索热门词汇
             }
         });
 
         hotSearch3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fillSearchBox("元宇宙");
+                String searchText = "元宇宙";
+                fillSearchBox(searchText);
+                performSearch(searchText); // 直接搜索热门词汇
             }
         });
 
         hotSearch4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fillSearchBox("机器学习");
+                String searchText = "机器学习";
+                fillSearchBox(searchText);
+                performSearch(searchText); // 直接搜索热门词汇
             }
         });
 
         hotSearch5.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fillSearchBox("云计算");
+                String searchText = "云计算";
+                fillSearchBox(searchText);
+                performSearch(searchText); // 直接搜索热门词汇
             }
         });
 
         hotSearch6.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fillSearchBox("大数据");
+                String searchText = "大数据";
+                fillSearchBox(searchText);
+                performSearch(searchText); // 直接搜索热门词汇
             }
         });
 
@@ -149,12 +161,19 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     /**
-     * 执行搜索
+     * 执行搜索 - 跳转到搜索结果页面
      */
     private void performSearch(String query) {
-        // 这里实现搜索逻辑
         // 保存搜索历史
         saveSearchHistory(query);
+
+        // 跳转到搜索结果页面
+        Intent intent = new Intent(this, SearchResultActivity.class);
+        intent.putExtra("search_query", query);
+        startActivity(intent);
+
+        // 关闭当前搜索页面
+        finish();
     }
 
     /**
@@ -163,6 +182,13 @@ public class SearchActivity extends AppCompatActivity {
     private void saveSearchHistory(String query) {
         // 这里实现保存搜索历史的逻辑
         // 可以使用SharedPreferences或数据库
+        // 示例代码：
+        /*
+        SharedPreferences prefs = getSharedPreferences("search_history", MODE_PRIVATE);
+        Set<String> historySet = prefs.getStringSet("history", new HashSet<>());
+        historySet.add(query);
+        prefs.edit().putStringSet("history", historySet).apply();
+        */
     }
 
     /**
@@ -171,5 +197,11 @@ public class SearchActivity extends AppCompatActivity {
     private void clearSearchHistory() {
         // 这里实现清空搜索历史的逻辑
         // 同时刷新搜索历史RecyclerView
+        // 示例代码：
+        /*
+        SharedPreferences prefs = getSharedPreferences("search_history", MODE_PRIVATE);
+        prefs.edit().remove("history").apply();
+        // 刷新UI显示
+        */
     }
 }

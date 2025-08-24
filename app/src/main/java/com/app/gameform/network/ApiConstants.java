@@ -20,7 +20,6 @@ public class ApiConstants {
     public static final String GET_ALL_SECTIONS = BASE_URL + "/user/section/all";
     public static final String UPLOAD_POST_IMAGE = BASE_URL + "/user/upload/save-post-image";
 
-    // ================== 缺少的游戏相关接口 ==================
     // 游戏详情
     public static final String GET_GAME_DETAIL = BASE_URL + "/user/game/"; // + gameId
 
@@ -36,7 +35,6 @@ public class ApiConstants {
     // 游戏类型搜索
     public static final String SEARCH_GAME_TYPES = BASE_URL + "/user/gameType/search"; // ?name=类型名称
 
-    // ================== 缺少的版块相关接口 ==================
     // 版块详情
     public static final String GET_SECTION_DETAIL = BASE_URL + "/user/section/"; // + sectionId
 
@@ -55,7 +53,6 @@ public class ApiConstants {
     // 根据版块ID获取游戏ID
     public static final String GET_GAME_ID_BY_SECTION = BASE_URL + "/user/section/gameId/"; // + sectionId
 
-    // ================== 缺少的帖子相关接口 ==================
     // 帖子列表
     public static final String GET_POST_LIST = BASE_URL + "/user/post/list";
 
@@ -92,7 +89,7 @@ public class ApiConstants {
     // 取消点赞帖子
     public static final String DELETE_POST_LIKE = BASE_URL + "/user/post/like/"; // + postId (DELETE)
 
-    // ================== 缺少的评论相关接口 ==================
+
     // 获取帖子评论
     public static final String GET_POST_COMMENTS = BASE_URL + "/user/comment/post/"; // + postId
 
@@ -105,7 +102,6 @@ public class ApiConstants {
     // 点赞评论
     public static final String TOGGLE_COMMENT_LIKE = BASE_URL + "/user/comment/like/"; // + commentId
 
-    // ================== 缺少的用户相关接口 ==================
     // 获取用户详情
     public static final String GET_USER_PROFILE_DETAIL = BASE_URL + "/user/profile/"; // + userId
 
@@ -121,11 +117,9 @@ public class ApiConstants {
     // 上传头像
     public static final String UPLOAD_AVATAR = BASE_URL + "/user/upload/save-avatar";
 
-    // ================== 缺少的公告相关接口 ==================
     // 获取公告列表
     public static final String GET_ANNOUNCEMENTS = BASE_URL + "/user/announcements/list";
 
-    // ================== 缺少的图片资源接口 ==================
     // 获取图片资源
     public static final String GET_PHOTOS = BASE_URL + "/user/public/";
     public static final String GET_POST_PHOTOS = BASE_URL + "/user/public/";
