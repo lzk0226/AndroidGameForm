@@ -14,10 +14,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
+import com.app.gameform.adapter.DraftAdapter;
 import com.app.gameform.adapter.PostAdapter;
+import com.app.gameform.domain.Draft;
 import com.app.gameform.domain.Post;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class PostListFragment extends Fragment {
@@ -25,14 +28,17 @@ public class PostListFragment extends Fragment {
 
     public static final int TYPE_DRAFT = 0;
     public static final int TYPE_PUBLISHED = 1;
-    public static final int TYPE_RECYCLE = 2;
 
     private int type;
     private RecyclerView recyclerView;
     private LinearLayout emptyLayout;
     private TextView tvEmptyText;
+
+    // 根据类型使用不同的适配器
     private PostAdapter postAdapter;
+    private DraftAdapter draftAdapter;
     private List<Post> postList;
+    private List<Draft> draftList;
 
     public static PostListFragment newInstance(int type) {
         PostListFragment fragment = new PostListFragment();
@@ -67,13 +73,40 @@ public class PostListFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        if (type == TYPE_DRAFT) {
+            setupDraftRecyclerView();
+        } else {
+            setupPostRecyclerView();
+        }
+    }
+
+    private void setupDraftRecyclerView() {
+        draftList = new ArrayList<>();
+        draftAdapter = new DraftAdapter(getContext(), draftList);
+        recyclerView.setAdapter(draftAdapter);
+
+        draftAdapter.setOnDraftClickListener(new DraftAdapter.OnDraftClickListener() {
+            @Override
+            public void onDraftClick(Draft draft, int position) {
+                // TODO: 处理草稿点击事件，跳转到编辑页面
+                editDraft(draft);
+            }
+
+            @Override
+            public void onMoreClick(Draft draft, int position) {
+                // TODO: 显示草稿操作菜单（编辑、删除、发布等）
+                showDraftOptions(draft, position);
+            }
+        });
+    }
+
+    private void setupPostRecyclerView() {
         postList = new ArrayList<>();
         postAdapter = new PostAdapter(getContext(), postList);
-
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(postAdapter);
 
-        // 设置点击监听器
         postAdapter.setOnPostClickListener(new PostAdapter.OnPostClickListener() {
             @Override
             public void onPostClick(Post post, int position) {
@@ -98,7 +131,7 @@ public class PostListFragment extends Fragment {
             @Override
             public void onMoreClick(Post post, int position) {
                 // TODO: 处理更多操作点击事件
-                showMoreOptions(post, position);
+                showPostOptions(post, position);
             }
         });
 
@@ -111,7 +144,6 @@ public class PostListFragment extends Fragment {
     }
 
     private void loadData() {
-        // TODO: 根据type加载对应的数据
         switch (type) {
             case TYPE_DRAFT:
                 loadDraftPosts();
@@ -121,16 +153,25 @@ public class PostListFragment extends Fragment {
                 loadPublishedPosts();
                 updateEmptyText("暂无已发布内容");
                 break;
-            case TYPE_RECYCLE:
-                loadRecyclePosts();
-                updateEmptyText("回收站为空");
-                break;
         }
     }
 
     private void loadDraftPosts() {
         // TODO: 加载草稿数据
         // 这里预留接口，实际项目中应该调用API获取草稿数据
+
+        // 模拟数据
+        draftList.clear();
+        for (int i = 1; i <= 3; i++) {
+            Draft draft = new Draft();
+            draft.setDraftId(i);
+            draft.setDraftTitle(""); // 空标题，会显示为"未命名草稿"
+            draft.setDraftContent("这是草稿内容 " + i);
+            draft.setCreateTime(new Date());
+            draft.setUpdateTime(new Date(System.currentTimeMillis() - i * 60000)); // i分钟前
+            draftList.add(draft);
+        }
+
         updateUI();
     }
 
@@ -140,29 +181,43 @@ public class PostListFragment extends Fragment {
         updateUI();
     }
 
-    private void loadRecyclePosts() {
-        // TODO: 加载回收站数据
-        // 这里预留接口，实际项目中应该调用API获取回收站数据
-        updateUI();
-    }
-
     private void updateEmptyText(String text) {
         tvEmptyText.setText(text);
     }
 
     private void updateUI() {
-        if (postList.isEmpty()) {
-            recyclerView.setVisibility(View.GONE);
-            emptyLayout.setVisibility(View.VISIBLE);
+        if (type == TYPE_DRAFT) {
+            if (draftList.isEmpty()) {
+                recyclerView.setVisibility(View.GONE);
+                emptyLayout.setVisibility(View.VISIBLE);
+            } else {
+                recyclerView.setVisibility(View.VISIBLE);
+                emptyLayout.setVisibility(View.GONE);
+                draftAdapter.notifyDataSetChanged();
+            }
         } else {
-            recyclerView.setVisibility(View.VISIBLE);
-            emptyLayout.setVisibility(View.GONE);
-            postAdapter.notifyDataSetChanged();
+            if (postList.isEmpty()) {
+                recyclerView.setVisibility(View.GONE);
+                emptyLayout.setVisibility(View.VISIBLE);
+            } else {
+                recyclerView.setVisibility(View.VISIBLE);
+                emptyLayout.setVisibility(View.GONE);
+                postAdapter.notifyDataSetChanged();
+            }
         }
     }
 
-    private void showMoreOptions(Post post, int position) {
-        // TODO: 显示更多操作选项（编辑、删除等）
+    private void editDraft(Draft draft) {
+        // TODO: 跳转到编辑页面
+    }
+
+    private void showDraftOptions(Draft draft, int position) {
+        // TODO: 显示草稿操作选项（编辑、删除、发布等）
+        // 可以使用PopupMenu或BottomSheetDialog
+    }
+
+    private void showPostOptions(Post post, int position) {
+        // TODO: 显示帖子操作选项（编辑、删除等）
         // 可以使用PopupMenu或BottomSheetDialog
     }
 
@@ -172,7 +227,7 @@ public class PostListFragment extends Fragment {
     }
 
     public void addPost(Post post) {
-        if (postList != null) {
+        if (type == TYPE_PUBLISHED && postList != null) {
             postList.add(0, post);
             postAdapter.notifyItemInserted(0);
             recyclerView.scrollToPosition(0);
@@ -180,8 +235,20 @@ public class PostListFragment extends Fragment {
         }
     }
 
-    public void removePost(int position) {
-        if (postAdapter != null) {
+    public void addDraft(Draft draft) {
+        if (type == TYPE_DRAFT && draftList != null) {
+            draftList.add(0, draft);
+            draftAdapter.notifyItemInserted(0);
+            recyclerView.scrollToPosition(0);
+            updateUI();
+        }
+    }
+
+    public void removeItem(int position) {
+        if (type == TYPE_DRAFT && draftAdapter != null) {
+            draftAdapter.removeDraft(position);
+            updateUI();
+        } else if (type == TYPE_PUBLISHED && postAdapter != null) {
             postAdapter.removePost(position);
             updateUI();
         }

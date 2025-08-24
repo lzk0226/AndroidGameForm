@@ -49,9 +49,6 @@ public class AddActivity extends AppCompatActivity {
                         case 1:
                             tab.setText("已发布");
                             break;
-                        case 2:
-                            tab.setText("回收站");
-                            break;
                     }
                 }
         ).attach();
@@ -77,7 +74,7 @@ public class AddActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return 3; // 草稿、已发布、回收站
+            return 2; // 草稿、已发布
         }
     }
 
@@ -91,8 +88,38 @@ public class AddActivity extends AppCompatActivity {
     }
 
     public void switchToTab(int position) {
-        if (position >= 0 && position < 3) {
+        if (position >= 0 && position < 2) {
             viewPager.setCurrentItem(position, true);
         }
+    }
+
+    // 获取当前Fragment
+    public PostListFragment getCurrentFragment() {
+        Fragment currentFragment = getSupportFragmentManager()
+                .findFragmentByTag("f" + viewPager.getCurrentItem());
+        if (currentFragment instanceof PostListFragment) {
+            return (PostListFragment) currentFragment;
+        }
+        return null;
+    }
+
+    // 获取草稿Fragment
+    public PostListFragment getDraftFragment() {
+        Fragment draftFragment = getSupportFragmentManager()
+                .findFragmentByTag("f0"); // 草稿是第0个tab
+        if (draftFragment instanceof PostListFragment) {
+            return (PostListFragment) draftFragment;
+        }
+        return null;
+    }
+
+    // 获取已发布Fragment
+    public PostListFragment getPublishedFragment() {
+        Fragment publishedFragment = getSupportFragmentManager()
+                .findFragmentByTag("f1"); // 已发布是第1个tab
+        if (publishedFragment instanceof PostListFragment) {
+            return (PostListFragment) publishedFragment;
+        }
+        return null;
     }
 }
