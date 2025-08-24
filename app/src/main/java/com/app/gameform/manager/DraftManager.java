@@ -40,14 +40,10 @@ public class DraftManager {
 
     /**
      * 保存草稿
-     * @param title 标题
-     * @param content 内容
-     * @param sectionId 版块ID
-     * @param sectionName 版块名称
-     * @param imageUris 图片URI列表（转为字符串存储）
-     * @return 保存的草稿对象
      */
-    public Draft saveDraft(String title, String content, Integer sectionId, String sectionName, String imageUris) {
+    public Draft saveDraft(String title, String content,
+                           Integer typeId, Integer gameId,
+                           Integer sectionId, String sectionName) {
         try {
             List<Draft> draftList = getAllDrafts();
 
@@ -59,9 +55,10 @@ public class DraftManager {
             draft.setDraftId(draftId);
             draft.setDraftTitle(title);
             draft.setDraftContent(content);
+            draft.setTypeId(typeId);
+            draft.setGameId(gameId);
             draft.setSectionId(sectionId);
             draft.setSectionName(sectionName);
-            draft.setDraftImages(imageUris);
             draft.setCreateTime(new Date());
             draft.setUpdateTime(new Date());
 
@@ -82,15 +79,10 @@ public class DraftManager {
 
     /**
      * 更新现有草稿
-     * @param draftId 草稿ID
-     * @param title 标题
-     * @param content 内容
-     * @param sectionId 版块ID
-     * @param sectionName 版块名称
-     * @param imageUris 图片URI列表
-     * @return 是否更新成功
      */
-    public boolean updateDraft(int draftId, String title, String content, Integer sectionId, String sectionName, String imageUris) {
+    public boolean updateDraft(int draftId, String title, String content,
+                               Integer typeId, Integer gameId,
+                               Integer sectionId, String sectionName) {
         try {
             List<Draft> draftList = getAllDrafts();
 
@@ -99,9 +91,10 @@ public class DraftManager {
                 if (draft.getDraftId() != null && draft.getDraftId() == draftId) {
                     draft.setDraftTitle(title);
                     draft.setDraftContent(content);
+                    draft.setTypeId(typeId);
+                    draft.setGameId(gameId);
                     draft.setSectionId(sectionId);
                     draft.setSectionName(sectionName);
-                    draft.setDraftImages(imageUris);
                     draft.setUpdateTime(new Date());
 
                     // 移到列表开头
@@ -123,8 +116,6 @@ public class DraftManager {
 
     /**
      * 删除草稿
-     * @param draftId 草稿ID
-     * @return 是否删除成功
      */
     public boolean deleteDraft(int draftId) {
         try {
@@ -149,7 +140,6 @@ public class DraftManager {
 
     /**
      * 获取所有草稿
-     * @return 草稿列表
      */
     public List<Draft> getAllDrafts() {
         try {
@@ -167,8 +157,6 @@ public class DraftManager {
 
     /**
      * 根据ID获取草稿
-     * @param draftId 草稿ID
-     * @return 草稿对象，未找到返回null
      */
     public Draft getDraftById(int draftId) {
         List<Draft> draftList = getAllDrafts();
@@ -182,9 +170,6 @@ public class DraftManager {
 
     /**
      * 检查是否有内容需要保存为草稿
-     * @param title 标题
-     * @param content 内容
-     * @return 是否有内容
      */
     public boolean hasContentToSave(String title, String content) {
         return (title != null && !title.trim().isEmpty()) ||
@@ -193,7 +178,6 @@ public class DraftManager {
 
     /**
      * 生成草稿默认名称
-     * @return 默认名称
      */
     public String generateDefaultDraftTitle() {
         List<Draft> draftList = getAllDrafts();

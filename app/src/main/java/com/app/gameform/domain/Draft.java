@@ -4,7 +4,7 @@ import java.util.Date;
 
 /**
  * 草稿实体类
- * @version 1.0
+ * @version 2.0
  * @Author : SockLightDust
  */
 public class Draft {
@@ -17,14 +17,17 @@ public class Draft {
     /** 草稿内容 */
     private String draftContent;
 
+    /** 类型ID */
+    private Integer typeId;
+
+    /** 游戏ID */
+    private Integer gameId;
+
     /** 所属版块ID */
     private Integer sectionId;
 
     /** 版块名称 (关联查询) */
     private String sectionName;
-
-    /** 草稿图片 */
-    private String draftImages;
 
     /** 创建时间 */
     private Date createTime;
@@ -66,6 +69,22 @@ public class Draft {
         this.draftContent = draftContent;
     }
 
+    public Integer getTypeId() {
+        return typeId;
+    }
+
+    public void setTypeId(Integer typeId) {
+        this.typeId = typeId;
+    }
+
+    public Integer getGameId() {
+        return gameId;
+    }
+
+    public void setGameId(Integer gameId) {
+        this.gameId = gameId;
+    }
+
     public Integer getSectionId() {
         return sectionId;
     }
@@ -80,14 +99,6 @@ public class Draft {
 
     public void setSectionName(String sectionName) {
         this.sectionName = sectionName;
-    }
-
-    public String getDraftImages() {
-        return draftImages;
-    }
-
-    public void setDraftImages(String draftImages) {
-        this.draftImages = draftImages;
     }
 
     public Date getCreateTime() {
@@ -139,9 +150,10 @@ public class Draft {
                 "draftId=" + draftId +
                 ", draftTitle='" + draftTitle + '\'' +
                 ", draftContent='" + draftContent + '\'' +
+                ", typeId=" + typeId +
+                ", gameId=" + gameId +
                 ", sectionId=" + sectionId +
                 ", sectionName='" + sectionName + '\'' +
-                ", draftImages='" + draftImages + '\'' +
                 ", createTime=" + createTime +
                 ", updateTime=" + updateTime +
                 ", userId=" + userId +

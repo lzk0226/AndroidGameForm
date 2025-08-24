@@ -1,11 +1,13 @@
 package com.app.gameform.Activity;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
@@ -21,9 +23,11 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
+import com.app.gameform.domain.Draft;
 import com.app.gameform.domain.Game;
 import com.app.gameform.domain.GameType;
 import com.app.gameform.domain.Section;
+import com.app.gameform.manager.DraftManager;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.utils.FileUtils;
 import com.app.gameform.utils.SharedPrefManager;
@@ -51,7 +55,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 发帖页面
+ * 发帖页面 - 增强版本，支持草稿自动保存
  */
 public class NewPostActivity extends AppCompatActivity {
 
@@ -71,6 +75,15 @@ public class NewPostActivity extends AppCompatActivity {
     // 图片选择器
     private ActivityResultLauncher<String> pickImageLauncher;
 
+    // 草稿管理器
+    private DraftManager draftManager;
+
+    // 当前编辑的草稿ID（如果是编辑草稿则不为null）
+    private Integer editingDraftId = null;
+
+    // 内容变化标志
+    private boolean hasContentChanged = false;
+
     // 优化 OkHttpClient 配置
     private OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -86,6 +99,8 @@ public class NewPostActivity extends AppCompatActivity {
         initViews();
         initImagePicker();
         initEvents();
+        initDraftManager();
+        handleIntent();
         loadTopicData();
     }
 
@@ -111,13 +126,14 @@ public class NewPostActivity extends AppCompatActivity {
                         selectedImageUris.add(uri);
                         rvSelectedImages.setVisibility(View.VISIBLE);
                         imageAdapter.notifyDataSetChanged();
+                        hasContentChanged = true;
                     }
                 }
         );
     }
 
     private void initEvents() {
-        btnClose.setOnClickListener(v -> finish());
+        btnClose.setOnClickListener(v -> onBackPressed());
 
         btnInsertImage.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
 
@@ -125,23 +141,76 @@ public class NewPostActivity extends AppCompatActivity {
         findViewById(R.id.layout_topic_selector).setOnClickListener(v -> showTopicSelector());
 
         // 输入监听，控制发布按钮是否可点击
-        etContent.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                updatePublishButton();
+        TextWatcher contentWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
-            @Override public void afterTextChanged(Editable s) {}
-        });
 
-        etTitle.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                hasContentChanged = true;
                 updatePublishButton();
             }
-            @Override public void afterTextChanged(Editable s) {}
-        });
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        };
+
+        etContent.addTextChangedListener(contentWatcher);
+        etTitle.addTextChangedListener(contentWatcher);
 
         btnPublish.setOnClickListener(v -> publishPost());
+    }
+
+    /**
+     * 初始化草稿管理器
+     */
+    private void initDraftManager() {
+        draftManager = DraftManager.getInstance(this);
+    }
+
+    /**
+     * 处理Intent参数（用于草稿编辑）
+     */
+    private void handleIntent() {
+        Intent intent = getIntent();
+        if (intent != null) {
+            // 检查是否是编辑草稿
+            int draftId = intent.getIntExtra("draft_id", -1);
+            if (draftId != -1) {
+                loadDraft(draftId);
+            }
+        }
+    }
+
+    /**
+     * 加载草稿内容
+     */
+    private void loadDraft(int draftId) {
+        Draft draft = draftManager.getDraftById(draftId);
+        if (draft != null) {
+            editingDraftId = draftId;
+
+            // 设置标题和内容
+            if (!TextUtils.isEmpty(draft.getDraftTitle())) {
+                etTitle.setText(draft.getDraftTitle());
+            }
+            if (!TextUtils.isEmpty(draft.getDraftContent())) {
+                etContent.setText(draft.getDraftContent());
+            }
+
+            // 设置选中的版块
+            if (draft.getSectionId() != null) {
+                // 这里需要根据sectionId找到对应的Section对象
+                // 由于数据可能还没加载完成，我们可以在loadTopicData完成后再设置
+                // 暂时先保存sectionId，等数据加载完成后再匹配
+            }
+
+
+            hasContentChanged = false; // 加载草稿时不算内容变化
+            updatePublishButton();
+        }
     }
 
     /**
@@ -173,6 +242,7 @@ public class NewPostActivity extends AppCompatActivity {
                         section.getSectionName());
                 tvSelectedTopic.setText(topicText);
                 tvSelectedTopic.setTextColor(0xFF333333);
+                hasContentChanged = true;
             }
             updatePublishButton();
         });
@@ -183,6 +253,138 @@ public class NewPostActivity extends AppCompatActivity {
         // 在对话框显示后设置数据，确保适配器已初始化
         dialog.setData(gameTypeList, gameList, sectionList);
     }
+
+    /**
+     * 重写返回按键处理
+     */
+    @Override
+    public void onBackPressed() {
+        if (!checkAndSaveDraft()) {
+            // 没有草稿需要保存，直接走默认返回逻辑
+            super.onBackPressed();
+        }
+    }
+
+    /**
+     * 检查并保存草稿
+     * @return 是否拦截返回（true=拦截，false=继续返回）
+     */
+    private boolean checkAndSaveDraft() {
+        String title = etTitle.getText().toString().trim();
+        String content = etContent.getText().toString().trim();
+
+        boolean hasContent = draftManager.hasContentToSave(title, content)
+                || !selectedImageUris.isEmpty()
+                || selectedSection != null;
+
+        if (hasContent && hasContentChanged) {
+            showSaveDraftDialog(title, content);
+            return true; // 拦截返回
+        }
+        return false; // 不拦截
+    }
+
+
+    /**
+     * 显示保存草稿确认对话框
+     */
+    private void showSaveDraftDialog(String title, String content) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("保存草稿");
+        builder.setMessage("检测到您有未发布的内容，是否保存为草稿？");
+
+        builder.setPositiveButton("保存", (dialog, which) -> {
+            saveDraft(title, content);
+            super.onBackPressed();
+        });
+
+        builder.setNegativeButton("不保存", (dialog, which) -> {
+            super.onBackPressed();
+        });
+
+        builder.setNeutralButton("取消", (dialog, which) -> {
+            // 用户取消，不退出页面
+            dialog.dismiss();
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false); // 防止点击外部区域关闭
+        dialog.show();
+    }
+
+    /**
+     * 保存草稿
+     */
+    private void saveDraft(String title, String content) {
+        try {
+            // 处理标题
+            if (TextUtils.isEmpty(title)) {
+                title = draftManager.generateDefaultDraftTitle();
+            }
+
+            // 处理话题信息
+            Integer typeId = null;
+            Integer gameId = null;
+            Integer sectionId = null;
+            String sectionName = null;
+
+            if (selectedSection != null) {
+                sectionId = selectedSection.getSectionId();
+                sectionName = selectedSection.getSectionName();
+
+                // 通过 section 找到 gameId
+                gameId = selectedSection.getGameId();
+                // 通过 gameId 找到 gameTypeId
+                if (gameId != null) {
+                    for (Game game : gameList) {
+                        if (game.getGameId().equals(gameId)) {
+                            typeId = game.getGameTypeId();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            Draft savedDraft;
+            if (editingDraftId != null) {
+                // 更新现有草稿（不保存图片）
+                boolean success = draftManager.updateDraft(
+                        editingDraftId,
+                        title,
+                        content,
+                        typeId,
+                        gameId,
+                        sectionId,
+                        sectionName
+                );
+                if (success) {
+                    Toast.makeText(this, "草稿已更新", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "草稿更新失败", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                // 保存新草稿（不保存图片）
+                savedDraft = draftManager.saveDraft(
+                        title,
+                        content,
+                        typeId,
+                        gameId,
+                        sectionId,
+                        sectionName
+                );
+                if (savedDraft != null) {
+                    Toast.makeText(this, "草稿已保存", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "草稿保存失败", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+        } catch (Exception e) {
+            Log.e("保存草稿", "保存失败: " + e.getMessage());
+            Toast.makeText(this, "草稿保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     /**
      * 获取有效的认证token
@@ -458,6 +660,12 @@ public class NewPostActivity extends AppCompatActivity {
                                 JSONObject json = new JSONObject(respStr);
                                 if (json.optInt("code") == 200) {
                                     Toast.makeText(NewPostActivity.this, "发布成功", Toast.LENGTH_SHORT).show();
+
+                                    // 发布成功后，如果是编辑草稿，则删除该草稿
+                                    if (editingDraftId != null) {
+                                        draftManager.deleteDraft(editingDraftId);
+                                    }
+
                                     setResult(Activity.RESULT_OK);
                                     finish();
                                 } else {
@@ -738,6 +946,16 @@ public class NewPostActivity extends AppCompatActivity {
      */
     interface ImageUploadCallback {
         void onSuccess(String imageUrl);
+
         void onFailure(String error);
+    }
+
+    /**
+     * 启动编辑草稿的静态方法
+     */
+    public static void startForEditDraft(Context context, int draftId) {
+        Intent intent = new Intent(context, NewPostActivity.class);
+        intent.putExtra("draft_id", draftId);
+        context.startActivity(intent);
     }
 }

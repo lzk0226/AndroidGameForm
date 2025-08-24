@@ -1,11 +1,14 @@
 package com.app.gameform.Activity;
 
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,6 +21,7 @@ import com.app.gameform.adapter.DraftAdapter;
 import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Draft;
 import com.app.gameform.domain.Post;
+import com.app.gameform.manager.DraftManager;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,6 +44,9 @@ public class PostListFragment extends Fragment {
     private List<Post> postList;
     private List<Draft> draftList;
 
+    // 草稿管理器
+    private DraftManager draftManager;
+
     public static PostListFragment newInstance(int type) {
         PostListFragment fragment = new PostListFragment();
         Bundle args = new Bundle();
@@ -53,6 +60,10 @@ public class PostListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             type = getArguments().getInt(ARG_TYPE);
+        }
+        // 初始化草稿管理器
+        if (type == TYPE_DRAFT) {
+            draftManager = DraftManager.getInstance(requireContext());
         }
     }
 
@@ -90,13 +101,13 @@ public class PostListFragment extends Fragment {
         draftAdapter.setOnDraftClickListener(new DraftAdapter.OnDraftClickListener() {
             @Override
             public void onDraftClick(Draft draft, int position) {
-                // TODO: 处理草稿点击事件，跳转到编辑页面
+                // 编辑草稿 - 跳转到发帖页面
                 editDraft(draft);
             }
 
             @Override
             public void onMoreClick(Draft draft, int position) {
-                // TODO: 显示草稿操作菜单（编辑、删除、发布等）
+                // 显示草稿操作菜单（删除等）
                 showDraftOptions(draft, position);
             }
         });
@@ -157,21 +168,12 @@ public class PostListFragment extends Fragment {
     }
 
     private void loadDraftPosts() {
-        // TODO: 加载草稿数据
-        // 这里预留接口，实际项目中应该调用API获取草稿数据
-
-        // 模拟数据
-        draftList.clear();
-        for (int i = 1; i <= 3; i++) {
-            Draft draft = new Draft();
-            draft.setDraftId(i);
-            draft.setDraftTitle(""); // 空标题，会显示为"未命名草稿"
-            draft.setDraftContent("这是草稿内容 " + i);
-            draft.setCreateTime(new Date());
-            draft.setUpdateTime(new Date(System.currentTimeMillis() - i * 60000)); // i分钟前
-            draftList.add(draft);
+        // 从本地加载草稿数据
+        if (draftManager != null) {
+            List<Draft> localDrafts = draftManager.getAllDrafts();
+            draftList.clear();
+            draftList.addAll(localDrafts);
         }
-
         updateUI();
     }
 
@@ -207,13 +209,80 @@ public class PostListFragment extends Fragment {
         }
     }
 
+    /**
+     * 编辑草稿 - 跳转到发帖页面
+     */
     private void editDraft(Draft draft) {
-        // TODO: 跳转到编辑页面
+        if (draft != null && draft.getDraftId() != null) {
+            // 使用NewPostActivity的静态方法启动编辑草稿
+            NewPostActivity.startForEditDraft(requireContext(), draft.getDraftId());
+        }
     }
 
+    /**
+     * 显示草稿操作选项对话框
+     */
     private void showDraftOptions(Draft draft, int position) {
-        // TODO: 显示草稿操作选项（编辑、删除、发布等）
-        // 可以使用PopupMenu或BottomSheetDialog
+        if (draft == null || getContext() == null) return;
+
+        String[] options = {"编辑", "删除"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(draft.getDisplayTitle());
+        builder.setItems(options, (dialog, which) -> {
+            switch (which) {
+                case 0: // 编辑
+                    editDraft(draft);
+                    break;
+                case 1: // 删除
+                    showDeleteDraftConfirm(draft, position);
+                    break;
+            }
+        });
+        builder.show();
+    }
+
+    /**
+     * 显示删除草稿确认对话框
+     */
+    private void showDeleteDraftConfirm(Draft draft, int position) {
+        if (draft == null || getContext() == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("删除草稿");
+        builder.setMessage("确定要删除草稿「" + draft.getDisplayTitle() + "」吗？");
+
+        builder.setPositiveButton("删除", (dialog, which) -> {
+            deleteDraft(draft, position);
+        });
+
+        builder.setNegativeButton("取消", (dialog, which) -> {
+            dialog.dismiss();
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    /**
+     * 删除草稿
+     */
+    private void deleteDraft(Draft draft, int position) {
+        if (draft == null || draftManager == null) return;
+
+        boolean success = draftManager.deleteDraft(draft.getDraftId());
+        if (success) {
+            // 从列表中移除
+            if (position >= 0 && position < draftList.size()) {
+                draftList.remove(position);
+                draftAdapter.notifyItemRemoved(position);
+                draftAdapter.notifyItemRangeChanged(position, draftList.size());
+            }
+            updateUI();
+            Toast.makeText(getContext(), "草稿已删除", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getContext(), "删除失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showPostOptions(Post post, int position) {
@@ -245,12 +314,24 @@ public class PostListFragment extends Fragment {
     }
 
     public void removeItem(int position) {
-        if (type == TYPE_DRAFT && draftAdapter != null) {
-            draftAdapter.removeDraft(position);
-            updateUI();
-        } else if (type == TYPE_PUBLISHED && postAdapter != null) {
+        if (type == TYPE_DRAFT && draftAdapter != null && position >= 0 && position < draftList.size()) {
+            Draft draft = draftList.get(position);
+            showDeleteDraftConfirm(draft, position);
+        } else if (type == TYPE_PUBLISHED && postAdapter != null && position >= 0 && position < postList.size()) {
             postAdapter.removePost(position);
             updateUI();
+        }
+    }
+
+    /**
+     * 页面恢复时刷新草稿数据
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (type == TYPE_DRAFT) {
+            // 从其他页面返回时刷新草稿列表
+            loadDraftPosts();
         }
     }
 }
