@@ -29,6 +29,7 @@ import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.HtmlUtils;
 import com.app.gameform.utils.ImageUtils;
 import com.app.gameform.utils.SharedPrefManager;
+import com.app.gameform.utils.TimeUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -298,8 +299,15 @@ public class PostDetailActivity extends AppCompatActivity {
                 tvUserName.setText(currentPost.getNickName() != null ? currentPost.getNickName() : "未知用户");
             }
 
+            // 修改这里：使用实际的时间数据而不是硬编码"刚刚"
             if (tvTime != null) {
-                tvTime.setText("刚刚");
+                if (currentPost.getCreateTime() != null) {
+                    tvTime.setText(TimeUtils.formatTimeAgo(currentPost.getCreateTime()));
+                } else if (currentPost.getUpdateTime() != null) {
+                    tvTime.setText(TimeUtils.formatTimeAgo(currentPost.getUpdateTime()));
+                } else {
+                    tvTime.setText("未知时间");
+                }
             }
 
             // 加载用户头像
@@ -482,7 +490,20 @@ public class PostDetailActivity extends AppCompatActivity {
                 public void onResponse(Call call, Response response) throws IOException {
                     try {
                         if (response.isSuccessful()) {
-                            updateCommentLikeStatusOnUiThread(comment, true, comment.getLikeCount());
+                            String json = response.body().string();
+                            Log.d(TAG, "Comment like response: " + json);
+
+                            // 解析服务器响应获取新的点赞数量
+                            Type type = new TypeToken<ApiResponse<Object>>() {}.getType();
+                            ApiResponse<Object> apiResponse = gson.fromJson(json, type);
+
+                            if (apiResponse != null && apiResponse.isSuccess()) {
+                                // 点赞成功，更新点赞状态和数量
+                                int newLikeCount = (comment.getLikeCount() != null ? comment.getLikeCount() : 0) + 1;
+                                updateCommentLikeStatusOnUiThread(comment, true, newLikeCount);
+                            } else {
+                                showToastOnUiThread("点赞失败: " + (apiResponse != null ? apiResponse.getMsg() : "未知错误"));
+                            }
                         } else {
                             showToastOnUiThread("点赞失败: " + response.code());
                         }
@@ -514,7 +535,20 @@ public class PostDetailActivity extends AppCompatActivity {
                 public void onResponse(Call call, Response response) throws IOException {
                     try {
                         if (response.isSuccessful()) {
-                            updateCommentLikeStatusOnUiThread(comment, false, comment.getLikeCount());
+                            String json = response.body().string();
+                            Log.d(TAG, "Comment unlike response: " + json);
+
+                            // 解析服务器响应
+                            Type type = new TypeToken<ApiResponse<Object>>() {}.getType();
+                            ApiResponse<Object> apiResponse = gson.fromJson(json, type);
+
+                            if (apiResponse != null && apiResponse.isSuccess()) {
+                                // 取消点赞成功，更新点赞状态和数量
+                                int newLikeCount = Math.max(0, (comment.getLikeCount() != null ? comment.getLikeCount() : 0) - 1);
+                                updateCommentLikeStatusOnUiThread(comment, false, newLikeCount);
+                            } else {
+                                showToastOnUiThread("取消点赞失败: " + (apiResponse != null ? apiResponse.getMsg() : "未知错误"));
+                            }
                         } else {
                             showToastOnUiThread("取消点赞失败: " + response.code());
                         }
