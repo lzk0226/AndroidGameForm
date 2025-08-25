@@ -29,30 +29,24 @@ import com.app.gameform.domain.GameType;
 import com.app.gameform.domain.Section;
 import com.app.gameform.manager.DraftManager;
 import com.app.gameform.network.ApiConstants;
-import com.app.gameform.utils.FileUtils;
+import com.app.gameform.utils.ImageUploadHelper;
 import com.app.gameform.utils.SharedPrefManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
-import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import android.util.Base64;
-import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 发帖页面 - 增强版本，支持草稿自动保存
@@ -91,6 +85,9 @@ public class NewPostActivity extends AppCompatActivity {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build();
 
+    // 图片上传工具类
+    private ImageUploadHelper imageUploadHelper;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,10 +97,13 @@ public class NewPostActivity extends AppCompatActivity {
         initImagePicker();
         initEvents();
         initDraftManager();
+        initImageUploadHelper();
         handleIntent();
         loadTopicData();
     }
 
+
+    // 在 initViews() 方法中的修改
     private void initViews() {
         btnClose = findViewById(R.id.btn_close);
         btnPublish = findViewById(R.id.btn_publish);
@@ -115,6 +115,18 @@ public class NewPostActivity extends AppCompatActivity {
 
         rvSelectedImages.setLayoutManager(new GridLayoutManager(this, 3));
         imageAdapter = new ImageAdapter(selectedImageUris);
+
+        // 设置删除监听器
+        imageAdapter.setOnImageDeleteListener(position -> {
+            // 图片被删除时的回调
+            hasContentChanged = true; // 标记内容已变化
+
+            // 如果没有图片了，隐藏RecyclerView
+            if (selectedImageUris.isEmpty()) {
+                rvSelectedImages.setVisibility(View.GONE);
+            }
+        });
+
         rvSelectedImages.setAdapter(imageAdapter);
     }
 
@@ -168,6 +180,13 @@ public class NewPostActivity extends AppCompatActivity {
      */
     private void initDraftManager() {
         draftManager = DraftManager.getInstance(this);
+    }
+
+    /**
+     * 初始化图片上传工具类
+     */
+    private void initImageUploadHelper() {
+        imageUploadHelper = new ImageUploadHelper(this);
     }
 
     /**
@@ -316,7 +335,7 @@ public class NewPostActivity extends AppCompatActivity {
     }
 
     /**
-     * 重写返回按键处理
+     * 重写返回按钮处理
      */
     @Override
     public void onBackPressed() {
@@ -778,7 +797,9 @@ public class NewPostActivity extends AppCompatActivity {
         }
     }
 
-    // 先上传图片再发布帖子
+    /**
+     * 先上传图片再发布帖子
+     */
     private void uploadImagesAndPublish(String title, String content, String token) {
         if (selectedImageUris.isEmpty()) {
             publishPostWithJson(title, content, "", token);
@@ -792,245 +813,29 @@ public class NewPostActivity extends AppCompatActivity {
         btnPublish.setEnabled(false);
         btnPublish.setText("上传图片中...");
 
-        try {
-            // 获取文件扩展名
-            String fileExtension = getFileExtension(imageUri);
-            if (fileExtension == null) {
+        Log.d("图片上传", "开始上传图片: " + imageUri);
+
+        // 使用ImageUploadHelper上传图片
+        imageUploadHelper.uploadImage(imageUri, token, new ImageUploadHelper.ImageUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "不支持的图片格式", Toast.LENGTH_SHORT).show();
+                    Log.d("图片上传", "上传成功，图片URL: " + imageUrl);
+                    btnPublish.setText("发布中...");
+                    publishPostWithJson(title, content, imageUrl, token);
+                });
+            }
+
+            @Override
+            public void onFailure(String error) {
+                runOnUiThread(() -> {
+                    Log.e("图片上传", "上传失败: " + error);
+                    Toast.makeText(NewPostActivity.this, "图片上传失败: " + error, Toast.LENGTH_SHORT).show();
                     btnPublish.setEnabled(true);
                     btnPublish.setText("发布");
                 });
-                return;
             }
-
-            // 将 URI 转换为 Base64
-            String base64Image = convertUriToBase64(imageUri);
-            if (base64Image == null) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "图片处理失败", Toast.LENGTH_SHORT).show();
-                    btnPublish.setEnabled(true);
-                    btnPublish.setText("发布");
-                });
-                return;
-            }
-
-            // 上传图片到服务器
-            uploadImageToServer(base64Image, fileExtension, token, new ImageUploadCallback() {
-                @Override
-                public void onSuccess(String imageUrl) {
-                    runOnUiThread(() -> {
-                        btnPublish.setText("发布中...");
-                        publishPostWithJson(title, content, imageUrl, token);
-                    });
-                }
-
-                @Override
-                public void onFailure(String error) {
-                    runOnUiThread(() -> {
-                        Toast.makeText(NewPostActivity.this, "图片上传失败: " + error, Toast.LENGTH_SHORT).show();
-                        btnPublish.setEnabled(true);
-                        btnPublish.setText("发布");
-                    });
-                }
-            });
-
-        } catch (Exception e) {
-            Log.e("图片上传", "错误: " + e.getMessage());
-            runOnUiThread(() -> {
-                Toast.makeText(this, "图片处理失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                btnPublish.setEnabled(true);
-                btnPublish.setText("发布");
-            });
-        }
-    }
-
-    /**
-     * 获取文件扩展名
-     */
-    private String getFileExtension(Uri imageUri) {
-        try {
-            // 方法1：通过MIME类型获取扩展名
-            String mimeType = getContentResolver().getType(imageUri);
-            if (mimeType != null) {
-                switch (mimeType.toLowerCase()) {
-                    case "image/jpeg":
-                    case "image/jpg":
-                        return "jpg";
-                    case "image/png":
-                        return "png";
-                    case "image/gif":
-                        return "gif";
-                    case "image/webp":
-                        return "webp";
-                    case "image/bmp":
-                        return "bmp";
-                    default:
-                        Log.w("文件扩展名", "未知MIME类型: " + mimeType);
-                        break;
-                }
-            }
-
-            // 方法2：从文件路径获取扩展名
-            String path = FileUtils.getPath(this, imageUri);
-            if (path != null && path.contains(".")) {
-                String ext = path.substring(path.lastIndexOf(".") + 1).toLowerCase();
-                if (ext.matches("^(jpg|jpeg|png|gif|webp|bmp)$")) {
-                    return ext.equals("jpeg") ? "jpg" : ext;
-                }
-            }
-
-            // 方法3：默认使用jpg
-            Log.w("文件扩展名", "无法确定扩展名，使用默认jpg");
-            return "jpg";
-
-        } catch (Exception e) {
-            Log.e("获取扩展名", "错误: " + e.getMessage());
-            return "jpg"; // 默认返回jpg
-        }
-    }
-
-    /**
-     * 将 URI 转换为 Base64 字符串
-     */
-    private String convertUriToBase64(Uri imageUri) {
-        try {
-            // 从 URI 获取输入流
-            InputStream inputStream = getContentResolver().openInputStream(imageUri);
-            if (inputStream == null) {
-                Log.e("图片转换", "无法打开图片文件");
-                return null;
-            }
-
-            // 读取图片数据
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, bytesRead);
-            }
-
-            inputStream.close();
-            byte[] imageBytes = byteArrayOutputStream.toByteArray();
-            byteArrayOutputStream.close();
-
-            // 检查文件大小（限制为5MB）
-            if (imageBytes.length > 5 * 1024 * 1024) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "图片大小不能超过5MB", Toast.LENGTH_SHORT).show();
-                });
-                return null;
-            }
-
-            // 转换为 Base64
-            String base64String = Base64.encodeToString(imageBytes, Base64.NO_WRAP);
-
-            // 添加数据URL前缀（根据图片类型）
-            String mimeType = getContentResolver().getType(imageUri);
-            if (mimeType == null) mimeType = "image/jpeg";
-
-            return "data:" + mimeType + ";base64," + base64String;
-
-        } catch (IOException e) {
-            Log.e("图片转换", "转换失败: " + e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 生成随机字符串
-     */
-    private String generateRandomString() {
-        String chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder result = new StringBuilder();
-        Random random = new Random();
-
-        for (int i = 0; i < 9; i++) {
-            result.append(chars.charAt(random.nextInt(chars.length())));
-        }
-
-        return result.toString();
-    }
-
-    /**
-     * 上传图片到服务器
-     */
-    private void uploadImageToServer(String base64Image, String fileExtension, String token, ImageUploadCallback callback) {
-        try {
-            // 生成文件名（与网页版保持一致的格式）
-            String fileName = String.format("post_%d_%s.%s",
-                    System.currentTimeMillis(),
-                    generateRandomString(),
-                    fileExtension);
-
-            Log.d("图片上传", "生成的文件名: " + fileName);
-
-            // 构建请求体
-            JSONObject jsonBody = new JSONObject();
-            jsonBody.put("fileName", fileName);
-            jsonBody.put("base64Data", base64Image);
-
-            RequestBody requestBody = RequestBody.create(
-                    jsonBody.toString(),
-                    MediaType.parse("application/json; charset=utf-8")
-            );
-
-            // 构建请求
-            Request request = new Request.Builder()
-                    .url(ApiConstants.UPLOAD_POST_IMAGE)
-                    .addHeader("Authorization", token)
-                    .addHeader("Content-Type", "application/json")
-                    .post(requestBody)
-                    .build();
-
-            Log.d("图片上传", "开始上传，URL: " + ApiConstants.UPLOAD_POST_IMAGE);
-            Log.d("图片上传", "Token: " + token.substring(0, Math.min(token.length(), 50)) + "...");
-
-            // 执行请求
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Log.e("图片上传", "请求失败: " + e.getMessage());
-                    callback.onFailure(e.getMessage());
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    String respStr = response.body().string();
-                    Log.d("图片上传响应", "状态码: " + response.code() + ", 响应: " + respStr);
-
-                    try {
-                        JSONObject json = new JSONObject(respStr);
-                        if (json.optInt("code") == 200) {
-                            // 上传成功，返回图片路径
-                            String imageUrl = "images/user/post/" + fileName;
-                            Log.d("图片上传", "上传成功，图片路径: " + imageUrl);
-                            callback.onSuccess(imageUrl);
-                        } else {
-                            String errorMsg = json.optString("message", json.optString("msg", "上传失败"));
-                            Log.e("图片上传", "服务器返回错误: " + errorMsg);
-                            callback.onFailure(errorMsg);
-                        }
-                    } catch (Exception e) {
-                        Log.e("解析响应", "错误: " + e.getMessage());
-                        callback.onFailure("响应解析失败");
-                    }
-                }
-            });
-
-        } catch (Exception e) {
-            Log.e("构建请求", "错误: " + e.getMessage());
-            callback.onFailure("请求构建失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 图片上传回调接口
-     */
-    interface ImageUploadCallback {
-        void onSuccess(String imageUrl);
-        void onFailure(String error);
+        });
     }
 
     /**
@@ -1040,5 +845,14 @@ public class NewPostActivity extends AppCompatActivity {
         Intent intent = new Intent(context, NewPostActivity.class);
         intent.putExtra("draft_id", draftId);
         context.startActivity(intent);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 销毁图片上传工具类的资源
+        if (imageUploadHelper != null) {
+            imageUploadHelper.destroy();
+        }
     }
 }

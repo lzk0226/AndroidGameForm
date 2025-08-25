@@ -27,16 +27,20 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- 删除按钮 -->
+    <!-- 删除按钮 - 修复后的版本 -->
     <ImageButton
         android:id="@+id/btn_delete"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginEnd="4dp"
-        android:background="#FFFFFF"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="2dp"
+        android:background="@drawable/delete_button_bg"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:scaleType="centerInside"
+        android:padding="4dp"
         android:contentDescription="删除图片"
-        android:src="@android:drawable/ic_delete"
+        android:clickable="true"
+        android:focusable="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
