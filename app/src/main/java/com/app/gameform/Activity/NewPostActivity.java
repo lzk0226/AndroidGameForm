@@ -179,7 +179,8 @@ public class NewPostActivity extends AppCompatActivity {
             // 检查是否是编辑草稿
             int draftId = intent.getIntExtra("draft_id", -1);
             if (draftId != -1) {
-                loadDraft(draftId);
+                editingDraftId = draftId;
+                // 数据加载完成后再设置草稿内容
             }
         }
     }
@@ -190,7 +191,7 @@ public class NewPostActivity extends AppCompatActivity {
     private void loadDraft(int draftId) {
         Draft draft = draftManager.getDraftById(draftId);
         if (draft != null) {
-            editingDraftId = draftId;
+            Log.d("LoadDraft", "加载草稿: " + draft.toString());
 
             // 设置标题和内容
             if (!TextUtils.isEmpty(draft.getDraftTitle())) {
@@ -200,17 +201,77 @@ public class NewPostActivity extends AppCompatActivity {
                 etContent.setText(draft.getDraftContent());
             }
 
-            // 设置选中的版块
+            // 设置选中的版块 - 等待数据加载完成后设置
             if (draft.getSectionId() != null) {
-                // 这里需要根据sectionId找到对应的Section对象
-                // 由于数据可能还没加载完成，我们可以在loadTopicData完成后再设置
-                // 暂时先保存sectionId，等数据加载完成后再匹配
+                // 延迟设置选中的版块，等待数据加载完成
+                setSelectedSectionFromDraft(draft);
             }
-
 
             hasContentChanged = false; // 加载草稿时不算内容变化
             updatePublishButton();
         }
+    }
+
+    /**
+     * 从草稿中设置选中的版块
+     */
+    private void setSelectedSectionFromDraft(Draft draft) {
+        // 如果数据还没加载完成，等待数据加载后再设置
+        if (sectionList.isEmpty() || gameList.isEmpty() || gameTypeList.isEmpty()) {
+            // 使用handler延迟执行
+            findViewById(R.id.et_title).postDelayed(() -> {
+                setSelectedSectionFromDraft(draft);
+            }, 500);
+            return;
+        }
+
+        try {
+            // 根据sectionId查找对应的Section
+            Section targetSection = null;
+            for (Section section : sectionList) {
+                if (section.getSectionId().equals(draft.getSectionId())) {
+                    targetSection = section;
+                    break;
+                }
+            }
+
+            if (targetSection != null) {
+                selectedSection = targetSection;
+
+                // 构建显示文本
+                String gameTypeName = "";
+                String gameName = "";
+
+                // 根据gameId查找游戏信息
+                for (Game game : gameList) {
+                    if (game.getGameId().equals(targetSection.getGameId())) {
+                        gameName = game.getGameName();
+
+                        // 根据gameTypeId查找游戏类型
+                        for (GameType gameType : gameTypeList) {
+                            if (gameType.getTypeId().equals(game.getGameTypeId())) {
+                                gameTypeName = gameType.getTypeName();
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                String topicText = String.format("#%s-%s-%s",
+                        gameTypeName, gameName, targetSection.getSectionName());
+                tvSelectedTopic.setText(topicText);
+                tvSelectedTopic.setTextColor(0xFF333333);
+
+                Log.d("LoadDraft", "设置话题成功: " + topicText);
+            } else {
+                Log.w("LoadDraft", "未找到对应的Section: " + draft.getSectionId());
+            }
+        } catch (Exception e) {
+            Log.e("LoadDraft", "设置话题失败: " + e.getMessage());
+        }
+
+        updatePublishButton();
     }
 
     /**
@@ -273,9 +334,8 @@ public class NewPostActivity extends AppCompatActivity {
         String title = etTitle.getText().toString().trim();
         String content = etContent.getText().toString().trim();
 
-        boolean hasContent = draftManager.hasContentToSave(title, content)
-                || !selectedImageUris.isEmpty()
-                || selectedSection != null;
+        // 草稿保存时不考虑图片，只保存文本内容
+        boolean hasContent = draftManager.hasContentToSave(title, content) || selectedSection != null;
 
         if (hasContent && hasContentChanged) {
             showSaveDraftDialog(title, content);
@@ -283,7 +343,6 @@ public class NewPostActivity extends AppCompatActivity {
         }
         return false; // 不拦截
     }
-
 
     /**
      * 显示保存草稿确认对话框
@@ -331,9 +390,8 @@ public class NewPostActivity extends AppCompatActivity {
             if (selectedSection != null) {
                 sectionId = selectedSection.getSectionId();
                 sectionName = selectedSection.getSectionName();
-
-                // 通过 section 找到 gameId
                 gameId = selectedSection.getGameId();
+
                 // 通过 gameId 找到 gameTypeId
                 if (gameId != null) {
                     for (Game game : gameList) {
@@ -345,7 +403,9 @@ public class NewPostActivity extends AppCompatActivity {
                 }
             }
 
-            Draft savedDraft;
+            Log.d("SaveDraft", String.format("保存草稿信息 - typeId: %d, gameId: %d, sectionId: %d, sectionName: %s",
+                    typeId, gameId, sectionId, sectionName));
+
             if (editingDraftId != null) {
                 // 更新现有草稿（不保存图片）
                 boolean success = draftManager.updateDraft(
@@ -364,7 +424,7 @@ public class NewPostActivity extends AppCompatActivity {
                 }
             } else {
                 // 保存新草稿（不保存图片）
-                savedDraft = draftManager.saveDraft(
+                Draft savedDraft = draftManager.saveDraft(
                         title,
                         content,
                         typeId,
@@ -384,7 +444,6 @@ public class NewPostActivity extends AppCompatActivity {
             Toast.makeText(this, "草稿保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
 
     /**
      * 获取有效的认证token
@@ -460,6 +519,8 @@ public class NewPostActivity extends AppCompatActivity {
 
                             runOnUiThread(() -> {
                                 Log.d("游戏类型", "加载成功，共 " + gameTypeList.size() + " 个类型");
+                                // 数据加载完成后检查是否需要加载草稿
+                                checkAndLoadDraftAfterDataLoaded();
                             });
                         }
                     } else {
@@ -517,6 +578,11 @@ public class NewPostActivity extends AppCompatActivity {
                                 game.setGameIcon(item.optString("gameIcon"));
                                 gameList.add(game);
                             }
+
+                            runOnUiThread(() -> {
+                                Log.d("游戏列表", "加载成功，共 " + gameList.size() + " 个游戏");
+                                checkAndLoadDraftAfterDataLoaded();
+                            });
                         }
                     }
                 } catch (Exception e) {
@@ -561,6 +627,11 @@ public class NewPostActivity extends AppCompatActivity {
                                 section.setOrderNum(item.optInt("orderNum"));
                                 sectionList.add(section);
                             }
+
+                            runOnUiThread(() -> {
+                                Log.d("版块列表", "加载成功，共 " + sectionList.size() + " 个版块");
+                                checkAndLoadDraftAfterDataLoaded();
+                            });
                         }
                     }
                 } catch (Exception e) {
@@ -568,6 +639,19 @@ public class NewPostActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    /**
+     * 检查数据是否加载完成，如果完成且需要加载草稿，则加载草稿
+     */
+    private void checkAndLoadDraftAfterDataLoaded() {
+        // 检查所有数据是否都已加载完成
+        if (!gameTypeList.isEmpty() && !gameList.isEmpty() && !sectionList.isEmpty()) {
+            // 如果是编辑草稿模式，加载草稿内容
+            if (editingDraftId != null) {
+                loadDraft(editingDraftId);
+            }
+        }
     }
 
     /**
@@ -946,7 +1030,6 @@ public class NewPostActivity extends AppCompatActivity {
      */
     interface ImageUploadCallback {
         void onSuccess(String imageUrl);
-
         void onFailure(String error);
     }
 
