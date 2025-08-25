@@ -162,6 +162,7 @@ public class PostListFragment extends Fragment {
                 handlePostLike(post, position);
             }
         });
+        postAdapter.setUserPostList(true);
     }
 
     private void loadData() {

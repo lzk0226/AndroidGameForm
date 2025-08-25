@@ -108,15 +108,16 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private void setupMoreButton(PostViewHolder holder, Post post, int position) {
         if (isUserPostList) {
             // 用户发布页面显示删除图标（X号）
-            holder.ivMore.setImageResource(R.mipmap.ic_delete); // 需要添加删除图标
+            holder.ivMore.setImageResource(R.mipmap.ic_delete); // ✅ 图标换成X
             holder.ivMore.setOnClickListener(v -> {
                 if (onPostClickListener != null) {
-                    onPostClickListener.onDeleteClick(post, position);
+                    // ✅ 点击事件依旧走“更多逻辑”
+                    onPostClickListener.onMoreClick(post, position);
                 }
             });
         } else {
             // 普通页面显示更多图标
-            holder.ivMore.setImageResource(R.mipmap.ft);
+            holder.ivMore.setImageResource(R.mipmap.ft); // 你原来的“更多”图标
             holder.ivMore.setOnClickListener(v -> {
                 if (onPostClickListener != null) {
                     onPostClickListener.onMoreClick(post, position);
@@ -124,6 +125,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             });
         }
     }
+
 
     private void updateLikeIcon(ImageView ivLike, Boolean hasLiked) {
         if (hasLiked != null && hasLiked) {
