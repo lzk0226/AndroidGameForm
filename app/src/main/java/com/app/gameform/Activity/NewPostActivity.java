@@ -49,7 +49,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * 发帖页面 - 增强版本，支持草稿自动保存
+ * 发帖页面
  */
 public class NewPostActivity extends AppCompatActivity {
 

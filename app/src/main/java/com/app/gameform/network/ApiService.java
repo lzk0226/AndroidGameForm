@@ -179,6 +179,88 @@ public class ApiService {
     }
 
     /**
+     * 需要认证的DELETE请求方法
+     */
+    public void deleteRequestWithAuth(Context context, String url, ApiCallback<String> callback) {
+        String token = SharedPrefManager.getInstance(context).getToken();
+        if (TextUtils.isEmpty(token)) {
+            callback.onError("token为空，无法执行请求，请重新登录");
+            return;
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", token.startsWith("Bearer ") ? token : "Bearer " + token)
+                .delete()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    if (response.isSuccessful()) {
+                        String json = response.body().string();
+                        callback.onSuccess(json);
+                    } else {
+                        callback.onError("请求失败: " + response.code());
+                    }
+                } catch (Exception e) {
+                    callback.onError("解析响应失败: " + e.getMessage());
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
+    /**
+     * 需要认证的POST请求方法
+     */
+    public void postRequestWithAuth(Context context, String url, String jsonBody, ApiCallback<String> callback) {
+        String token = SharedPrefManager.getInstance(context).getToken();
+        if (TextUtils.isEmpty(token)) {
+            callback.onError("token为空，无法执行请求，请重新登录");
+            return;
+        }
+
+        RequestBody body = RequestBody.create(jsonBody, MediaType.parse("application/json; charset=utf-8"));
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", token.startsWith("Bearer ") ? token : "Bearer " + token)
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    if (response.isSuccessful()) {
+                        String json = response.body().string();
+                        callback.onSuccess(json);
+                    } else {
+                        callback.onError("请求失败: " + response.code());
+                    }
+                } catch (Exception e) {
+                    callback.onError("解析响应失败: " + e.getMessage());
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
+    /**
      * 获取帖子列表
      */
     public void getPosts(String url, ApiCallback<List<Post>> callback) {
@@ -361,7 +443,6 @@ public class ApiService {
     public Gson getGson() {
         return gson;
     }
-
 
     /**
      * API响应包装类

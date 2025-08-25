@@ -22,6 +22,9 @@ import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Draft;
 import com.app.gameform.domain.Post;
 import com.app.gameform.manager.DraftManager;
+import com.app.gameform.network.ApiCallback;
+import com.app.gameform.network.ApiConstants;
+import com.app.gameform.network.ApiService;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -121,17 +124,17 @@ public class PostListFragment extends Fragment {
         postAdapter.setOnPostClickListener(new PostAdapter.OnPostClickListener() {
             @Override
             public void onPostClick(Post post, int position) {
-                // TODO: 处理帖子点击事件
+                // TODO: 处理帖子点击事件 - 可以跳转到帖子详情页
             }
 
             @Override
             public void onUserClick(Post post, int position) {
-                // TODO: 处理用户点击事件
+                // TODO: 处理用户点击事件 - 可以跳转到用户主页
             }
 
             @Override
             public void onCommentClick(Post post, int position) {
-                // TODO: 处理评论点击事件
+                // TODO: 处理评论点击事件 - 可以跳转到评论页面
             }
 
             @Override
@@ -141,7 +144,7 @@ public class PostListFragment extends Fragment {
 
             @Override
             public void onMoreClick(Post post, int position) {
-                // TODO: 处理更多操作点击事件
+                // 处理更多操作点击事件 - 显示编辑删除选项
                 showPostOptions(post, position);
             }
         });
@@ -150,6 +153,7 @@ public class PostListFragment extends Fragment {
             @Override
             public void onLikeClick(Post post, int position) {
                 // TODO: 处理点赞事件
+                handlePostLike(post, position);
             }
         });
     }
@@ -178,9 +182,54 @@ public class PostListFragment extends Fragment {
     }
 
     private void loadPublishedPosts() {
-        // TODO: 加载已发布数据
-        // 这里预留接口，实际项目中应该调用API获取已发布数据
-        updateUI();
+        // 调用后端API获取当前用户的已发布帖子列表
+        ApiService.getInstance().getRequestWithAuth(
+                getContext(),
+                ApiConstants.GET_MY_POSTS,
+                new ApiCallback<String>() {
+                    @Override
+                    public void onSuccess(String response) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                try {
+                                    // 使用 ApiService 中的 gson 解析响应
+                                    ApiService.ApiResponse<List<Post>> apiResponse =
+                                            ApiService.getInstance().getGson().fromJson(
+                                                    response,
+                                                    new com.google.gson.reflect.TypeToken<ApiService.ApiResponse<List<Post>>>(){}.getType()
+                                            );
+
+                                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                        postList.clear();
+                                        postList.addAll(apiResponse.getData());
+                                    } else {
+                                        postList.clear();
+                                        Toast.makeText(getContext(),
+                                                apiResponse.getMsg() != null ? apiResponse.getMsg() : "获取数据失败",
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+                                    updateUI();
+                                } catch (Exception e) {
+                                    postList.clear();
+                                    updateUI();
+                                    Toast.makeText(getContext(), "解析数据失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                postList.clear();
+                                updateUI();
+                                Toast.makeText(getContext(), "加载失败: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+                }
+        );
     }
 
     private void updateEmptyText(String text) {
@@ -285,9 +334,202 @@ public class PostListFragment extends Fragment {
         }
     }
 
+    /**
+     * 显示帖子操作选项对话框
+     */
     private void showPostOptions(Post post, int position) {
-        // TODO: 显示帖子操作选项（编辑、删除等）
-        // 可以使用PopupMenu或BottomSheetDialog
+        if (post == null || getContext() == null) return;
+
+        String[] options = {"编辑", "删除"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(post.getPostTitle());
+        builder.setItems(options, (dialog, which) -> {
+            switch (which) {
+                case 0: // 编辑
+                    editPost(post);
+                    break;
+                case 1: // 删除
+                    showDeletePostConfirm(post, position);
+                    break;
+            }
+        });
+        builder.show();
+    }
+
+    /**
+     * 编辑帖子
+     */
+    private void editPost(Post post) {
+        // TODO: 跳转到编辑帖子页面
+        Toast.makeText(getContext(), "编辑功能待开发", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * 显示删除帖子确认对话框
+     */
+    private void showDeletePostConfirm(Post post, int position) {
+        if (post == null || getContext() == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("删除帖子");
+        builder.setMessage("确定要删除帖子「" + post.getPostTitle() + "」吗？");
+
+        builder.setPositiveButton("删除", (dialog, which) -> {
+            deletePost(post, position);
+        });
+
+        builder.setNegativeButton("取消", (dialog, which) -> {
+            dialog.dismiss();
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    /**
+     * 删除帖子
+     */
+    private void deletePost(Post post, int position) {
+        if (post == null || getContext() == null) return;
+
+        // 调用后端API删除帖子
+        String deleteUrl = ApiConstants.USER_POST + post.getPostId();
+
+        ApiService.getInstance().deleteRequestWithAuth(
+                getContext(),
+                deleteUrl,
+                new ApiCallback<String>() {
+                    @Override
+                    public void onSuccess(String response) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                // 从列表中移除
+                                if (position >= 0 && position < postList.size()) {
+                                    postList.remove(position);
+                                    postAdapter.notifyItemRemoved(position);
+                                    postAdapter.notifyItemRangeChanged(position, postList.size());
+                                }
+                                updateUI();
+                                Toast.makeText(getContext(), "帖子已删除", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "删除失败: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+                }
+        );
+    }
+
+    /**
+     * 处理帖子点赞
+     */
+    private void handlePostLike(Post post, int position) {
+        if (post == null || getContext() == null) return;
+
+        // 先检查点赞状态
+        ApiService.getInstance().checkPostLikeStatus(
+                getContext(),
+                post.getPostId(),
+                new ApiCallback<Boolean>() {
+                    @Override
+                    public void onSuccess(Boolean hasLiked) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                if (hasLiked) {
+                                    // 如果已点赞，则取消点赞
+                                    unlikePost(post, position);
+                                } else {
+                                    // 如果未点赞，则点赞
+                                    likePost(post, position);
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "检查点赞状态失败: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+                }
+        );
+    }
+
+    /**
+     * 点赞帖子
+     */
+    private void likePost(Post post, int position) {
+        ApiService.getInstance().likePost(
+                getContext(),
+                post.getPostId(),
+                new ApiCallback<Boolean>() {
+                    @Override
+                    public void onSuccess(Boolean success) {
+                        if (getActivity() != null && success) {
+                            getActivity().runOnUiThread(() -> {
+                                // 更新点赞数
+                                int currentCount = post.getLikeCount() != null ? post.getLikeCount() : 0;
+                                post.setLikeCount(currentCount + 1);
+                                postAdapter.notifyItemChanged(position);
+                                Toast.makeText(getContext(), "点赞成功", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "点赞失败: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+                }
+        );
+    }
+
+    /**
+     * 取消点赞帖子
+     */
+    private void unlikePost(Post post, int position) {
+        ApiService.getInstance().unlikePost(
+                getContext(),
+                post.getPostId(),
+                new ApiCallback<Boolean>() {
+                    @Override
+                    public void onSuccess(Boolean success) {
+                        if (getActivity() != null && success) {
+                            getActivity().runOnUiThread(() -> {
+                                // 更新点赞数
+                                int currentCount = post.getLikeCount() != null ? post.getLikeCount() : 0;
+                                post.setLikeCount(Math.max(0, currentCount - 1));
+                                postAdapter.notifyItemChanged(position);
+                                Toast.makeText(getContext(), "取消点赞成功", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "取消点赞失败: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+                }
+        );
     }
 
     // 公共方法供外部调用
@@ -318,13 +560,13 @@ public class PostListFragment extends Fragment {
             Draft draft = draftList.get(position);
             showDeleteDraftConfirm(draft, position);
         } else if (type == TYPE_PUBLISHED && postAdapter != null && position >= 0 && position < postList.size()) {
-            postAdapter.removePost(position);
-            updateUI();
+            Post post = postList.get(position);
+            showDeletePostConfirm(post, position);
         }
     }
 
     /**
-     * 页面恢复时刷新草稿数据
+     * 页面恢复时刷新数据
      */
     @Override
     public void onResume() {
@@ -332,6 +574,9 @@ public class PostListFragment extends Fragment {
         if (type == TYPE_DRAFT) {
             // 从其他页面返回时刷新草稿列表
             loadDraftPosts();
+        } else if (type == TYPE_PUBLISHED) {
+            // 从其他页面返回时刷新已发布列表
+            loadPublishedPosts();
         }
     }
 }
