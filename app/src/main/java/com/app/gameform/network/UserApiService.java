@@ -114,7 +114,7 @@ public class UserApiService {
                             callback.onSuccess(data);
                         }
                     } else {
-                        //callback.onError(apiResponse.getMessage());
+                        callback.onError(apiResponse.getMessage());
                     }
                 } catch (Exception e) {
                     //Log.e(TAG, logTag + "解析响应失败", e);

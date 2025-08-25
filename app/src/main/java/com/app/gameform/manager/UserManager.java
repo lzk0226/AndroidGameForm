@@ -2,7 +2,10 @@ package com.app.gameform.manager;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 import com.app.gameform.domain.User;
@@ -15,10 +18,12 @@ import com.app.gameform.network.UserApiService;
  */
 public class UserManager {
 
+    private static final String TAG = "UserManager";
     private static UserManager instance;
     private Context context;
     private SharedPreferences sharedPreferences;
     private UserApiService userApiService;
+    private Handler mainHandler;
 
     // 常量定义
     private static final String PREFS_NAME = "UserPrefs";
@@ -34,10 +39,14 @@ public class UserManager {
     private static final int MIN_NICKNAME_LENGTH = 2;
     private static final int MAX_NICKNAME_LENGTH = 20;
 
+    // 网络超时设置
+    private static final long NETWORK_TIMEOUT_MS = 15000; // 15秒超时
+
     private UserManager(Context context) {
         this.context = context.getApplicationContext();
         this.sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         this.userApiService = UserApiService.getInstance();
+        this.mainHandler = new Handler(Looper.getMainLooper());
     }
 
     public static UserManager getInstance(Context context) {
@@ -86,24 +95,34 @@ public class UserManager {
      * 保存登录信息
      */
     private void saveLoginInfo(UserApiService.LoginResponse response) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(KEY_TOKEN, response.getAccessToken());
-        editor.putString(KEY_REFRESH_TOKEN, response.getRefreshToken());
-        editor.putLong(KEY_USER_ID, response.getUser().getUserId());
-        editor.putString(KEY_USERNAME, response.getUser().getUserName());
-        editor.apply();
+        try {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(KEY_TOKEN, response.getAccessToken());
+            editor.putString(KEY_REFRESH_TOKEN, response.getRefreshToken());
+            editor.putLong(KEY_USER_ID, response.getUser().getUserId());
+            editor.putString(KEY_USERNAME, response.getUser().getUserName());
+            editor.apply();
+            Log.d(TAG, "登录信息保存成功");
+        } catch (Exception e) {
+            Log.e(TAG, "保存登录信息失败", e);
+        }
     }
 
     /**
      * 清除登录信息
      */
     public void clearLoginInfo() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove(KEY_TOKEN);
-        editor.remove(KEY_REFRESH_TOKEN);
-        editor.remove(KEY_USER_ID);
-        editor.remove(KEY_USERNAME);
-        editor.apply();
+        try {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.remove(KEY_TOKEN);
+            editor.remove(KEY_REFRESH_TOKEN);
+            editor.remove(KEY_USER_ID);
+            editor.remove(KEY_USERNAME);
+            editor.apply();
+            Log.d(TAG, "登录信息清除成功");
+        } catch (Exception e) {
+            Log.e(TAG, "清除登录信息失败", e);
+        }
     }
 
     // ==================== 表单验证 ====================
@@ -195,28 +214,101 @@ public class UserManager {
     // ==================== 用户操作接口 ====================
 
     /**
-     * 用户登录
+     * 用户登录 - 改进版本，增加超时处理和错误处理
      */
     public void login(String username, String password, UserOperationCallback callback) {
+        Log.d(TAG, "开始登录，用户名: " + username);
+
+        // 参数检查
+        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
+            callback.onError("用户名和密码不能为空");
+            return;
+        }
+
         User loginUser = new User();
         loginUser.setUserName(username);
         loginUser.setPassword(password);
 
+        // 设置超时处理
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        boolean[] isCompleted = {false};
+
+        Runnable timeoutRunnable = () -> {
+            if (!isCompleted[0]) {
+                isCompleted[0] = true;
+                Log.w(TAG, "登录请求超时");
+                callback.onError("网络请求超时，请检查网络连接后重试");
+            }
+        };
+
+        timeoutHandler.postDelayed(timeoutRunnable, NETWORK_TIMEOUT_MS);
+
         userApiService.login(loginUser, new ApiCallback<UserApiService.LoginResponse>() {
             @Override
             public void onSuccess(UserApiService.LoginResponse data) {
-                // 保存登录信息（token、userId、username等）
-                saveLoginInfo(data);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    try {
+                        Log.d(TAG, "登录成功，用户ID: " + data.getUser().getUserId());
 
-                String token = data.getTokenType() + " " + data.getAccessToken();
-                callback.onSuccess("登录成功", token);
+                        // 保存登录信息（token、userId、username等）
+                        saveLoginInfo(data);
+
+                        String token = data.getTokenType() + " " + data.getAccessToken();
+
+                        // 确保在主线程回调
+                        mainHandler.post(() -> callback.onSuccess("登录成功", token));
+                    } catch (Exception e) {
+                        Log.e(TAG, "处理登录成功响应时出错", e);
+                        mainHandler.post(() -> callback.onError("登录处理异常，请重试"));
+                    }
+                }
             }
 
             @Override
             public void onError(String errorMessage) {
-                callback.onError(errorMessage);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    Log.e(TAG, "登录失败: " + errorMessage);
+
+                    // 解析具体的错误信息
+                    String userFriendlyError = parseLoginError(errorMessage);
+
+                    // 确保在主线程回调
+                    mainHandler.post(() -> callback.onError(userFriendlyError));
+                }
             }
         });
+    }
+
+    /**
+     * 解析登录错误信息
+     */
+    private String parseLoginError(String error) {
+        if (TextUtils.isEmpty(error)) {
+            return "登录失败，请重试";
+        }
+
+        // 根据错误码和错误信息返回用户友好的提示
+        if (error.contains("1008") || error.contains("LOGIN_FAILED") ||
+                error.contains("用户名或密码错误") || error.contains("账号已被停用")) {
+            return "用户名或密码错误，请检查后重试";
+        } else if (error.contains("网络") || error.contains("连接") ||
+                error.contains("timeout") || error.contains("ConnectException") ||
+                error.contains("SocketTimeoutException")) {
+            return "网络连接失败，请检查网络后重试";
+        } else if (error.contains("500") || error.contains("服务器") ||
+                error.contains("INTERNAL_SERVER_ERROR")) {
+            return "服务器暂时不可用，请稍后重试";
+        } else if (error.contains("401") || error.contains("UNAUTHORIZED")) {
+            return "认证失败，请检查用户名和密码";
+        } else if (error.contains("403") || error.contains("FORBIDDEN")) {
+            return "账户已被禁用，请联系管理员";
+        }
+
+        return "登录失败：" + error;
     }
 
     /**
@@ -224,6 +316,8 @@ public class UserManager {
      * 注册成功后不自动登录，只显示成功消息
      */
     public void register(String username, String nickname, String email, String phone, String password, UserOperationCallback callback) {
+        Log.d(TAG, "开始注册，用户名: " + username);
+
         // 构建注册用户对象
         User user = new User();
         user.setUserName(username);
@@ -233,18 +327,45 @@ public class UserManager {
         user.setUserType("10");
         user.setPassword(password);
 
+        // 设置超时处理
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        boolean[] isCompleted = {false};
+
+        Runnable timeoutRunnable = () -> {
+            if (!isCompleted[0]) {
+                isCompleted[0] = true;
+                Log.w(TAG, "注册请求超时");
+                callback.onError("网络请求超时，请检查网络连接后重试");
+            }
+        };
+
+        timeoutHandler.postDelayed(timeoutRunnable, NETWORK_TIMEOUT_MS);
+
         userApiService.register(user, new ApiCallback<String>() {
             @Override
             public void onSuccess(String message) {
-                // 注册成功，返回成功消息，不返回token
-                callback.onSuccess("注册成功！欢迎加入我们的游戏世界！", null);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    Log.d(TAG, "注册成功");
+
+                    // 注册成功，返回成功消息，不返回token
+                    mainHandler.post(() -> callback.onSuccess("注册成功！欢迎加入我们的游戏世界！", null));
+                }
             }
 
             @Override
             public void onError(String error) {
-                // 解析错误信息
-                String errorMessage = parseRegisterError(error);
-                callback.onError(errorMessage);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    Log.e(TAG, "注册失败: " + error);
+
+                    // 解析错误信息
+                    String errorMessage = parseRegisterError(error);
+
+                    mainHandler.post(() -> callback.onError(errorMessage));
+                }
             }
         });
     }
@@ -269,12 +390,14 @@ public class UserManager {
         }
 
         // 其他常见错误
-        if (error.contains("用户名")) {
+        if (error.contains("用户名") || error.contains("1005") || error.contains("USER_NAME_EXISTS")) {
             return "用户名已存在";
-        } else if (error.contains("邮箱")) {
+        } else if (error.contains("邮箱") || error.contains("1006") || error.contains("EMAIL_EXISTS")) {
             return "邮箱已被使用";
-        } else if (error.contains("手机")) {
+        } else if (error.contains("手机") || error.contains("1007") || error.contains("PHONE_EXISTS")) {
             return "手机号已被使用";
+        } else if (error.contains("网络") || error.contains("连接") || error.contains("timeout")) {
+            return "网络连接失败，请检查网络后重试";
         }
 
         return "注册失败，请重试";
@@ -295,12 +418,12 @@ public class UserManager {
         userApiService.getUserInfo(userId, token, new ApiCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                callback.onSuccess(user);
+                mainHandler.post(() -> callback.onSuccess(user));
             }
 
             @Override
             public void onError(String error) {
-                callback.onError("获取用户信息失败: " + error);
+                mainHandler.post(() -> callback.onError("获取用户信息失败: " + error));
             }
         });
     }
@@ -324,15 +447,36 @@ public class UserManager {
         updateUser.setEmail(TextUtils.isEmpty(email) ? null : email);
         updateUser.setPhonenumber(TextUtils.isEmpty(phone) ? null : phone);
 
+        // 设置超时处理
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        boolean[] isCompleted = {false};
+
+        Runnable timeoutRunnable = () -> {
+            if (!isCompleted[0]) {
+                isCompleted[0] = true;
+                callback.onError("网络请求超时，请重试");
+            }
+        };
+
+        timeoutHandler.postDelayed(timeoutRunnable, NETWORK_TIMEOUT_MS);
+
         userApiService.updateProfile(updateUser, token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                callback.onSuccess("个人信息更新成功", null);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    mainHandler.post(() -> callback.onSuccess("个人信息更新成功", null));
+                }
             }
 
             @Override
             public void onError(String error) {
-                callback.onError("更新失败: " + error);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    mainHandler.post(() -> callback.onError("更新失败: " + error));
+                }
             }
         });
     }
@@ -351,17 +495,57 @@ public class UserManager {
 
         UserApiService.UpdatePasswordRequest request = new UserApiService.UpdatePasswordRequest(userId, oldPassword, newPassword);
 
+        // 设置超时处理
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        boolean[] isCompleted = {false};
+
+        Runnable timeoutRunnable = () -> {
+            if (!isCompleted[0]) {
+                isCompleted[0] = true;
+                callback.onError("网络请求超时，请重试");
+            }
+        };
+
+        timeoutHandler.postDelayed(timeoutRunnable, NETWORK_TIMEOUT_MS);
+
         userApiService.updatePassword(request, token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                callback.onSuccess("密码修改成功", null);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    mainHandler.post(() -> callback.onSuccess("密码修改成功", null));
+                }
             }
 
             @Override
             public void onError(String error) {
-                callback.onError("密码修改失败: " + error);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    String errorMessage = parsePasswordError(error);
+                    mainHandler.post(() -> callback.onError(errorMessage));
+                }
             }
         });
+    }
+
+    /**
+     * 解析密码修改错误信息
+     */
+    private String parsePasswordError(String error) {
+        if (TextUtils.isEmpty(error)) {
+            return "密码修改失败，请重试";
+        }
+
+        if (error.contains("1012") || error.contains("PASSWORD_UPDATE_FAILED") ||
+                error.contains("旧密码") || error.contains("密码错误")) {
+            return "旧密码错误，请检查后重试";
+        } else if (error.contains("网络") || error.contains("连接") || error.contains("timeout")) {
+            return "网络连接失败，请检查网络后重试";
+        }
+
+        return "密码修改失败: " + error;
     }
 
     /**
@@ -376,18 +560,41 @@ public class UserManager {
             return;
         }
 
+        // 设置超时处理
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        boolean[] isCompleted = {false};
+
+        Runnable timeoutRunnable = () -> {
+            if (!isCompleted[0]) {
+                isCompleted[0] = true;
+                // 即使服务器端登出失败，也清除本地数据
+                clearLoginInfo();
+                callback.onSuccess("已退出登录", null);
+            }
+        };
+
+        timeoutHandler.postDelayed(timeoutRunnable, NETWORK_TIMEOUT_MS);
+
         userApiService.logout(token, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
-                clearLoginInfo();
-                callback.onSuccess("已退出登录", null);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    clearLoginInfo();
+                    mainHandler.post(() -> callback.onSuccess("已退出登录", null));
+                }
             }
 
             @Override
             public void onError(String error) {
-                // 即使服务器端登出失败，也清除本地数据
-                clearLoginInfo();
-                callback.onSuccess("已退出登录", null);
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (!isCompleted[0]) {
+                    isCompleted[0] = true;
+                    // 即使服务器端登出失败，也清除本地数据
+                    clearLoginInfo();
+                    mainHandler.post(() -> callback.onSuccess("已退出登录", null));
+                }
             }
         });
     }
@@ -398,14 +605,32 @@ public class UserManager {
      * 显示Toast消息
      */
     public void showToast(String message) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+        mainHandler.post(() -> Toast.makeText(context, message, Toast.LENGTH_SHORT).show());
     }
 
     /**
      * 显示长Toast消息
      */
     public void showLongToast(String message) {
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+        mainHandler.post(() -> Toast.makeText(context, message, Toast.LENGTH_LONG).show());
+    }
+
+    /**
+     * 检查网络连接状态
+     */
+    public boolean isNetworkAvailable() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager)
+                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) {
+                android.net.NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+                return networkInfo != null && networkInfo.isConnected();
+            }
+            return false;
+        } catch (Exception e) {
+            Log.e(TAG, "检查网络状态失败", e);
+            return false;
+        }
     }
 
     // ==================== 回调接口 ====================
