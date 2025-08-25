@@ -611,6 +611,10 @@ public class SearchResultActivity extends AppCompatActivity implements
         intent.putExtra("focus_comment", true);
         startActivity(intent);
     }
+    @Override
+    public void onDeleteClick(Post post, int position) {
+        // 暂时不需要删除功能，可以空实现
+    }
 
     @Override
     public void onViewClick(Post post, int position) {

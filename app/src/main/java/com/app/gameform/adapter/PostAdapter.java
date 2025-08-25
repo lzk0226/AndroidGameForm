@@ -31,11 +31,17 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private OnPostClickListener onPostClickListener;
     private OnPostLikeListener onPostLikeListener;
     private SimpleDateFormat dateFormat;
+    private boolean isUserPostList = false; // 新增：标识是否为用户发布页面
 
     public PostAdapter(Context context, List<Post> postList) {
         this.context = context;
         this.postList = postList;
         this.dateFormat = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
+    }
+
+    // 新增：设置是否为用户发布页面
+    public void setUserPostList(boolean isUserPostList) {
+        this.isUserPostList = isUserPostList;
     }
 
     // 设置点击监听器接口
@@ -45,6 +51,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onCommentClick(Post post, int position);
         void onViewClick(Post post, int position);  // 修改：分享改为浏览
         void onMoreClick(Post post, int position);
+        void onDeleteClick(Post post, int position); // 新增：删除按钮点击
     }
 
     public interface OnPostLikeListener {
@@ -87,10 +94,35 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         // 修改：显示浏览量而不是分享
         holder.tvViewCount.setText(String.format("%s",
                 formatViewCount(post.getViewCount() != null ? post.getViewCount() : 0)));
+
+        // 根据页面类型设置更多按钮图标
+        setupMoreButton(holder, post, position);
+
         // 设置点击监听器
         setupClickListeners(holder, post, position);
         // 设置置顶和热门标识
         setPostFlags(holder, post);
+    }
+
+    // 新增：设置更多按钮
+    private void setupMoreButton(PostViewHolder holder, Post post, int position) {
+        if (isUserPostList) {
+            // 用户发布页面显示删除图标（X号）
+            holder.ivMore.setImageResource(R.mipmap.ic_delete); // 需要添加删除图标
+            holder.ivMore.setOnClickListener(v -> {
+                if (onPostClickListener != null) {
+                    onPostClickListener.onDeleteClick(post, position);
+                }
+            });
+        } else {
+            // 普通页面显示更多图标
+            holder.ivMore.setImageResource(R.mipmap.ft);
+            holder.ivMore.setOnClickListener(v -> {
+                if (onPostClickListener != null) {
+                    onPostClickListener.onMoreClick(post, position);
+                }
+            });
+        }
     }
 
     private void updateLikeIcon(ImageView ivLike, Boolean hasLiked) {
@@ -100,8 +132,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             ivLike.setImageResource(R.mipmap.dz);  // 未点赞图标
         }
     }
-
-
 
     /**
      * 格式化浏览量显示
@@ -119,6 +149,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return String.format("%.0fw", viewCount / 10000.0);
         }
     }
+
     private void loadPostImage(ImageView imageView, CardView cardView, String photoUrl) {
         if (photoUrl != null && !photoUrl.isEmpty()) {
             cardView.setVisibility(View.VISIBLE);
@@ -163,13 +194,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 onPostClickListener.onViewClick(post, position);
             }
         });
-        // 更多按钮点击
-        holder.ivMore.setOnClickListener(v -> {
-            if (onPostClickListener != null) {
-                onPostClickListener.onMoreClick(post, position);
-            }
-        });
+
+        // 更多按钮的点击事件在 setupMoreButton 中已经设置
     }
+
     private void setPostFlags(PostViewHolder holder, Post post) {
         // 设置置顶标识
         if ("1".equals(post.getTopFlag())) {
@@ -182,6 +210,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             // 可以在这里添加热门标识的显示逻辑
         }
     }
+
     private String formatTime(Date createTime) {
         if (createTime == null) {
             return "未知时间";
@@ -215,10 +244,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return dateFormat.format(createTime);
         }
     }
+
     @Override
     public int getItemCount() {
         return postList != null ? postList.size() : 0;
     }
+
     // 更新点赞状态
     public void updateLikeStatus(int position, boolean isLiked, int likeCount) {
         if (position >= 0 && position < postList.size()) {
@@ -227,6 +258,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemChanged(position);
         }
     }
+
     // 更新评论数量
     public void updateCommentCount(int position, int commentCount) {
         if (position >= 0 && position < postList.size()) {
@@ -235,6 +267,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemChanged(position);
         }
     }
+
     // 新增：更新浏览量
     public void updateViewCount(int position, int viewCount) {
         if (position >= 0 && position < postList.size()) {
@@ -243,6 +276,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemChanged(position);
         }
     }
+
     // 移除指定位置的帖子
     public void removePost(int position) {
         if (position >= 0 && position < postList.size()) {
@@ -251,6 +285,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             notifyItemRangeChanged(position, postList.size());
         }
     }
+
     // ViewHolder类
     static class PostViewHolder extends RecyclerView.ViewHolder {
         CircleImageView ivAvatar;
@@ -267,6 +302,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvViewCount;  // 修改：原来的tvShare改为tvViewCount
         ImageView ivMore;
         ImageView ivLike;
+
         public PostViewHolder(@NonNull View itemView) {
             super(itemView);
             ivAvatar = itemView.findViewById(R.id.iv_avatar);

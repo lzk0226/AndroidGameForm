@@ -15,7 +15,6 @@ import java.util.List;
 
 /**
  * 草稿管理器 - 用于本地存储和管理草稿
- * 修复版本：正确保存和加载游戏类型、游戏、版块信息
  */
 public class DraftManager {
     private static final String TAG = "DraftManager";

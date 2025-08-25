@@ -147,6 +147,12 @@ public class PostListFragment extends Fragment {
                 // 处理更多操作点击事件 - 显示编辑删除选项
                 showPostOptions(post, position);
             }
+
+            @Override
+            public void onDeleteClick(Post post, int position) {
+                // 暂时不需要删除功能，可以空实现
+            }
+
         });
 
         postAdapter.setOnPostLikeListener(new PostAdapter.OnPostLikeListener() {

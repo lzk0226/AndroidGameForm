@@ -496,6 +496,11 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
         Toast.makeText(this, "点击了用户: " + post.getNickName(), Toast.LENGTH_SHORT).show();
         // 可以跳转到用户资料页
     }
+    @Override
+    public void onDeleteClick(Post post, int position) {
+        // 暂时不需要删除功能，可以空实现
+    }
+
 
     @Override
     public void onCommentClick(Post post, int position) {

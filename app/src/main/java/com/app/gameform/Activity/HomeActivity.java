@@ -405,6 +405,10 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         });
     }
 
+    @Override
+    public void onDeleteClick(Post post, int position) {
+        // 暂时不需要删除功能，可以空实现
+    }
 
 
 }
