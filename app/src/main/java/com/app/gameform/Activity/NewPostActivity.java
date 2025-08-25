@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
+import com.app.gameform.adapter.ImageAdapter;
 import com.app.gameform.domain.Draft;
 import com.app.gameform.domain.Game;
 import com.app.gameform.domain.GameType;

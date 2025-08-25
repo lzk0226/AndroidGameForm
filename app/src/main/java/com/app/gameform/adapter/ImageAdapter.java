@@ -1,4 +1,4 @@
-package com.app.gameform.Activity;
+package com.app.gameform.adapter;
 
 import android.net.Uri;
 import android.view.LayoutInflater;
