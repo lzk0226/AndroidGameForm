@@ -94,20 +94,20 @@ public class BottomNavigationHelper {
 
 
     private void navigateToActivity(Class<?> activityClass) {
-        // 如果当前页面就是目标页面，不做任何操作
         if (context.getClass() == activityClass) {
             return;
         }
 
         Intent intent = new Intent(context, activityClass);
+        intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT); // 如果已存在则直接前置，而不是重新创建
         context.startActivity(intent);
 
-        // 添加过渡动画
         if (context instanceof AppCompatActivity) {
             ((AppCompatActivity) context).overridePendingTransition(0, 0);
-            ((AppCompatActivity) context).finish();
+            // ((AppCompatActivity) context).finish();
         }
     }
+
 
     /**
      * 设置当前选中的导航项
