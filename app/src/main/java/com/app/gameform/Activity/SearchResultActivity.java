@@ -10,7 +10,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -29,6 +29,7 @@ import com.app.gameform.adapter.SectionAdapter;
 import com.app.gameform.domain.Game;
 import com.app.gameform.domain.Post;
 import com.app.gameform.domain.Section;
+import com.app.gameform.manager.PostLikeManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.network.ApiService;
@@ -49,11 +50,12 @@ public class SearchResultActivity extends AppCompatActivity implements
         GameAdapter.OnItemClickListener, SectionAdapter.OnItemClickListener {
 
     // UI 组件
-    private ImageView btnBack;
+    private FrameLayout btnBackFrame; // 修改：使用FrameLayout作为返回按钮容器
     private EditText etSearch;
     private TextView btnSearch;
     private TextView tabAll, tabPosts, tabGames, tabBoards;
     private View tabIndicator;
+    private PostLikeManager likeManager;
     private LinearLayout layoutSearchStats, layoutEmpty, layoutLoading;
     private TextView tvSearchStats, tvSearchKeyword;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -92,6 +94,7 @@ public class SearchResultActivity extends AppCompatActivity implements
         initViews();
         setupListeners();
         setupRecyclerView();
+        initializeLikeManager();
 
         // 从Intent获取搜索关键词
         Intent intent = getIntent();
@@ -102,8 +105,13 @@ public class SearchResultActivity extends AppCompatActivity implements
         }
     }
 
+    private void initializeLikeManager() {
+        likeManager = new PostLikeManager(this);
+    }
+
     private void initViews() {
-        btnBack = findViewById(R.id.btn_back);
+        // 修改：绑定FrameLayout容器而不是ImageView
+        btnBackFrame = findViewById(R.id.btn_back_frame);
         etSearch = findViewById(R.id.et_search);
         btnSearch = findViewById(R.id.btn_search);
 
@@ -136,8 +144,8 @@ public class SearchResultActivity extends AppCompatActivity implements
     }
 
     private void setupListeners() {
-        // 返回按钮
-        btnBack.setOnClickListener(v -> finish());
+        // 修改：返回按钮绑定到FrameLayout容器
+        btnBackFrame.setOnClickListener(v -> finish());
 
         // 搜索按钮
         btnSearch.setOnClickListener(v -> handleSearch());
@@ -628,9 +636,62 @@ public class SearchResultActivity extends AppCompatActivity implements
 
     @Override
     public void onLikeClick(Post post, int position) {
-        // 实现点赞逻辑
-        Toast.makeText(this, "点赞功能", Toast.LENGTH_SHORT).show();
+        likeManager.handleLikeClick(post, position, new PostLikeManager.LikeStatusCallback() {
+            @Override
+            public void onUpdate(boolean hasLiked, int newLikeCount) {
+                runOnUiThread(() -> {
+                    // 更新对应列表中的数据
+                    updatePostLikeStatus(post, position, hasLiked, newLikeCount);
+                });
+            }
+
+            @Override
+            public void onFail(String errorMessage) {
+                // 记录错误日志
+                Log.e("SearchResultActivity", "点赞操作失败: " + errorMessage);
+            }
+        });
     }
+
+    private void updatePostLikeStatus(Post post, int position, boolean hasLiked, int newLikeCount) {
+        // 更新帖子对象的点赞数
+        post.setLikeCount(newLikeCount);
+
+        // 根据当前显示的适配器更新UI
+        switch (currentTab) {
+            case "posts":
+            case "all":
+                // 对于帖子列表，使用 PostAdapter 的更新方法
+                if (postAdapter != null) {
+                    // 找到在当前显示列表中的实际位置
+                    int actualPosition = findPostPositionInCurrentList(post);
+                    if (actualPosition != -1) {
+                        postAdapter.updateLikeStatus(actualPosition, hasLiked, newLikeCount);
+                    }
+                }
+                break;
+            case "games":
+            case "sections":
+                // 游戏和版块标签页不涉及帖子点赞
+                break;
+        }
+    }
+
+    private int findPostPositionInCurrentList(Post targetPost) {
+        if (targetPost == null || targetPost.getPostId() == null) {
+            return -1;
+        }
+
+        for (int i = 0; i < postList.size(); i++) {
+            Post post = postList.get(i);
+            if (post != null && post.getPostId() != null &&
+                    post.getPostId().equals(targetPost.getPostId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
 
     // 实现 GameAdapter 接口
     @Override

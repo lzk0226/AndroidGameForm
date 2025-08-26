@@ -7,6 +7,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -18,7 +19,7 @@ public class SearchActivity extends AppCompatActivity {
 
     private EditText etSearch;
     private TextView btnSearch;
-    private ImageView btnBack;
+    private FrameLayout btnBackFrame;
     private TextView btnClearHistory;
 
     // 热门搜索按钮
@@ -41,7 +42,8 @@ public class SearchActivity extends AppCompatActivity {
     private void initViews() {
         etSearch = findViewById(R.id.et_search);
         btnSearch = findViewById(R.id.btn_search);
-        btnBack = findViewById(R.id.btn_back);
+        //btnBack = findViewById(R.id.btn_back);
+        btnBackFrame = findViewById(R.id.btn_back_frame);
         btnClearHistory = findViewById(R.id.btn_clear_history);
 
         // 热门搜索按钮
@@ -55,12 +57,7 @@ public class SearchActivity extends AppCompatActivity {
 
     private void setClickListeners() {
         // 返回按钮
-        btnBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        btnBackFrame.setOnClickListener(v -> finish());
 
         // 搜索按钮
         btnSearch.setOnClickListener(new View.OnClickListener() {
