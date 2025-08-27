@@ -14,6 +14,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.app.gameform.R;
 import com.app.gameform.adapter.PostAdapter;
@@ -28,14 +29,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPostClickListener, PostAdapter.OnPostLikeListener {
+public class HomeActivity extends AppCompatActivity implements
+        PostAdapter.OnPostClickListener,
+        PostAdapter.OnPostLikeListener,
+        BottomNavigationHelper.OnHomeDoubleClickListener {
+
     private RecyclerView recyclerView;
     private PostAdapter postAdapter;
     private List<Post> postList;
     private TextView tabHot, tabRecommend, tabFollow, tabNew;
     private ImageView iconSearch;
     private BottomNavigationHelper bottomNavigationHelper;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private String currentTab = "recommend";
+    private LinearLayoutManager layoutManager;
 
     // 数据缓存 - 缓存每个标签的数据
     private Map<String, List<Post>> dataCache = new HashMap<>();
@@ -51,6 +58,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             setupTabListeners();
             setupSearchListener();
             setupBottomNavigation();
+            setupSwipeRefresh();
 
             // 默认显示推荐
             switchTab(currentTab);
@@ -68,18 +76,43 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         tabFollow = findViewById(R.id.tab_follow);
         tabNew = findViewById(R.id.tab_new);
         iconSearch = findViewById(R.id.icon_search);
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
 
         postList = new ArrayList<>();
     }
 
     private void setupRecyclerView() {
+        layoutManager = new LinearLayoutManager(this);
         postAdapter = new PostAdapter(this, postList);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(postAdapter);
 
         // 设置监听器
         postAdapter.setOnPostClickListener(this);
         postAdapter.setOnPostLikeListener(this);
+    }
+
+    private void setupSwipeRefresh() {
+        // 设置下拉刷新的颜色
+        swipeRefreshLayout.setColorSchemeResources(
+                android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light
+        );
+
+        // 设置下拉刷新监听器
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refreshCurrentTab();
+            }
+        });
+    }
+
+    private void refreshCurrentTab() {
+        // 下拉刷新时，强制重新加载数据
+        loadPostData(currentTab, true);
     }
 
     private void setupTabListeners() {
@@ -116,6 +149,31 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         // 使用底部导航栏工具类
         bottomNavigationHelper = new BottomNavigationHelper(this, findViewById(R.id.bottomNavigationInclude));
         bottomNavigationHelper.setSelectedItem(BottomNavigationHelper.NavigationItem.HOME);
+
+        // 设置主页双击监听器
+        bottomNavigationHelper.setOnHomeDoubleClickListener(this);
+    }
+
+    /**
+     * 实现双击主页按钮回调
+     * 双击主页按钮时，滚动到顶部并刷新数据
+     */
+    @Override
+    public void onHomeDoubleClick() {
+        // 滚动到顶部（平滑滚动）
+        recyclerView.smoothScrollToPosition(0);
+
+        // 延迟一点时间再刷新，让滚动动画先执行
+        recyclerView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // 刷新当前标签的数据
+                refreshCurrentTab();
+
+                // 显示提示
+                Toast.makeText(HomeActivity.this, "已刷新", Toast.LENGTH_SHORT).show();
+            }
+        }, 200); // 延迟200毫秒
     }
 
     private void switchTab(String tab) {
@@ -170,7 +228,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             // 可选：后台刷新
             refreshDataInBackground(type);
         } else {
-            loadPostData(type);
+            loadPostData(type, false);
         }
     }
 
@@ -198,29 +256,65 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         });
     }
 
-    private void loadPostData(String type) {
-        showLoading();
+    /**
+     * 加载帖子数据
+     * @param type 帖子类型
+     * @param isRefresh 是否是下拉刷新
+     */
+    private void loadPostData(String type, boolean isRefresh) {
+        if (!isRefresh) {
+            showLoading();
+        }
+
         String url = getApiUrl(type);
 
         ApiService.getInstance().getPosts(url, new ApiCallback<List<Post>>() {
             @Override
             public void onSuccess(List<Post> posts) {
                 runOnUiThread(() -> {
-                    hideLoading();
+                    if (!isRefresh) {
+                        hideLoading();
+                    }
+
+                    // 停止下拉刷新动画
+                    if (swipeRefreshLayout.isRefreshing()) {
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+
                     dataCache.put(type, new ArrayList<>(posts));
                     postList.clear();
                     postList.addAll(posts);
                     postAdapter.notifyDataSetChanged();
+
+                    if (isRefresh) {
+                        Toast.makeText(HomeActivity.this, "刷新成功", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
 
             @Override
             public void onError(String error) {
-                runOnUiThread(() ->
-                        Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show()
-                );
+                runOnUiThread(() -> {
+                    if (!isRefresh) {
+                        hideLoading();
+                    }
+
+                    // 停止下拉刷新动画
+                    if (swipeRefreshLayout.isRefreshing()) {
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+
+                    Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show();
+                });
             }
         });
+    }
+
+    /**
+     * 重载方法，保持向后兼容
+     */
+    private void loadPostData(String type) {
+        loadPostData(type, false);
     }
 
     private String getApiUrl(String type) {
@@ -298,5 +392,14 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     @Override
     public void onDeleteClick(Post post, int position) {
         // 暂时不需要删除功能
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 清理资源
+        if (bottomNavigationHelper != null) {
+            bottomNavigationHelper.destroy();
+        }
     }
 }

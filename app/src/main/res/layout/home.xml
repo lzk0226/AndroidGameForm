@@ -86,24 +86,25 @@
 
     </LinearLayout>
 
-    <!-- 内容区域 -->
-
-    <!-- 底部导航栏 - 使用include引用 -->
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- 内容区域 - 添加SwipeRefreshLayout包裹RecyclerView -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="0dp"
-        android:layout_marginBottom="0dp"
         app:layout_constraintBottom_toTopOf="@+id/bottomNavigationInclude"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tabLayout"
-        app:layout_constraintVertical_bias="0.0"
-        tools:listitem="@layout/item_post" />
+        app:layout_constraintTop_toBottomOf="@+id/tabLayout">
 
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:listitem="@layout/item_post" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- 底部导航栏 - 使用include引用 -->
     <include
         android:id="@+id/bottomNavigationInclude"
         layout="@layout/bottom_navigation"
