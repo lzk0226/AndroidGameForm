@@ -11,12 +11,12 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.app.gameform.Activity.AddActivity;
-import com.app.gameform.Activity.CircleActivity;
-import com.app.gameform.Activity.HomeActivity;
+import com.app.gameform.Activity.Home.AddActivity;
+import com.app.gameform.Activity.Home.CircleActivity;
+import com.app.gameform.Activity.Home.HomeActivity;
 import com.app.gameform.Activity.NewPostActivity;
-import com.app.gameform.Activity.NotificationActivity;
-import com.app.gameform.Activity.ProfileActivity;
+import com.app.gameform.Activity.Home.NotificationActivity;
+import com.app.gameform.Activity.Home.ProfileActivity;
 import com.app.gameform.R;
 
 /**
@@ -156,7 +156,7 @@ public class BottomNavigationHelper {
 
         if (context instanceof AppCompatActivity) {
             ((AppCompatActivity) context).overridePendingTransition(0, 0);
-            // ((AppCompatActivity) context).finish();
+            // 移除了 finish() 调用，页面间切换不再销毁Activity
         }
     }
 

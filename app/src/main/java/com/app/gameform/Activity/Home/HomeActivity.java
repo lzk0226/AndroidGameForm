@@ -1,4 +1,4 @@
-package com.app.gameform.Activity;
+package com.app.gameform.Activity.Home;
 
 import static com.app.gameform.network.ApiConstants.USER_POST;
 
@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.app.gameform.Activity.PostDetailActivity;
+import com.app.gameform.Activity.SearchActivity;
 import com.app.gameform.R;
 import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Post;
@@ -29,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HomeActivity extends AppCompatActivity implements
+public class HomeActivity extends BaseActivity implements
         PostAdapter.OnPostClickListener,
         PostAdapter.OnPostLikeListener,
         BottomNavigationHelper.OnHomeDoubleClickListener {
@@ -59,6 +61,9 @@ public class HomeActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         try {
             setContentView(R.layout.home);
+
+            // 设置自定义退出提示信息
+            setExitMessage("再按一次退出应用");
 
             initViews();
             initLazyLoadingData();

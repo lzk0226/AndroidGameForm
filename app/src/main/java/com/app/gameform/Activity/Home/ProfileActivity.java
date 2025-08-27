@@ -1,4 +1,4 @@
-package com.app.gameform.Activity;
+package com.app.gameform.Activity.Home;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,6 +13,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
+import com.app.gameform.Activity.EditProfileActivity;
+import com.app.gameform.Activity.LoginActivity;
 import com.app.gameform.R;
 import com.app.gameform.domain.User;
 import com.app.gameform.network.ApiCallback;
@@ -25,7 +27,7 @@ import java.util.Locale;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class ProfileActivity extends AppCompatActivity {
+public class ProfileActivity extends BaseActivity {
     private BottomNavigationHelper bottomNavigationHelper;
     private SharedPreferences sharedPreferences;
     private UserApiService userApiService;

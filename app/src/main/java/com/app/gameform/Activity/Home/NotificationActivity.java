@@ -1,11 +1,11 @@
-package com.app.gameform.Activity;
+package com.app.gameform.Activity.Home;
 
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import com.app.gameform.R;
 import com.app.gameform.utils.BottomNavigationHelper;
 
-public class NotificationActivity extends AppCompatActivity {
+public class NotificationActivity extends BaseActivity {
     private BottomNavigationHelper bottomNavigationHelper;
 
     @Override

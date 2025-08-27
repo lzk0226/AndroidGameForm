@@ -16,22 +16,22 @@
         <!-- 在 <application> 标签内添加这些Activity声明 -->
 
         <activity
-            android:name=".Activity.CircleActivity"
+            android:name=".Activity.Home.CircleActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
         <activity
-            android:name=".Activity.AddActivity"
+            android:name=".Activity.Home.AddActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
         <activity
-            android:name=".Activity.NotificationActivity"
+            android:name=".Activity.Home.NotificationActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
         <activity
-            android:name=".Activity.ProfileActivity"
+            android:name=".Activity.Home.ProfileActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity android:name=".Activity.SearchActivity"
@@ -61,7 +61,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Activity.HomeActivity" />
+        <activity android:name=".Activity.Home.HomeActivity" />
     </application>
 
     <uses-permission android:name="android.permission.INTERNET" />

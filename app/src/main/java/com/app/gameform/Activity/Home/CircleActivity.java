@@ -1,4 +1,4 @@
-package com.app.gameform.Activity;
+package com.app.gameform.Activity.Home;
 
 import android.os.Bundle;
 import android.view.WindowManager;
@@ -16,7 +16,7 @@ import com.app.gameform.fragment.SectionsFragment;
 import com.app.gameform.fragment.GamesFragment;
 import com.app.gameform.utils.BottomNavigationHelper;
 
-public class CircleActivity extends AppCompatActivity {
+public class CircleActivity extends BaseActivity {
     private BottomNavigationHelper bottomNavigationHelper;
     private TabLayout tabLayout;
     private ViewPager2 viewPager;

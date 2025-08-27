@@ -1,4 +1,4 @@
-package com.app.gameform.Activity;
+package com.app.gameform.Activity.Home;
 
 import android.os.Bundle;
 
@@ -9,12 +9,13 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.app.gameform.Activity.PostListFragment;
 import com.app.gameform.R;
 import com.app.gameform.utils.BottomNavigationHelper;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
-public class AddActivity extends AppCompatActivity {
+public class AddActivity extends BaseActivity {
     private BottomNavigationHelper bottomNavigationHelper;
     private TabLayout tabLayout;
     private ViewPager2 viewPager;
