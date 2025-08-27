@@ -15,7 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager2.widget.ViewPager2;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.app.gameform.R;
 import com.app.gameform.adapter.PostAdapter;
@@ -27,6 +27,7 @@ import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.ImageUtils;
+import com.app.gameform.utils.LazyLoadingHelper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -38,13 +39,14 @@ import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class SectionDetailActivity extends AppCompatActivity implements PostAdapter.OnPostClickListener, PostAdapter.OnPostLikeListener {
+public class SectionDetailActivity extends AppCompatActivity implements
+        PostAdapter.OnPostClickListener,
+        PostAdapter.OnPostLikeListener {
 
     private static final String TAG = "SectionDetailActivity";
     private static final String PREFS_NAME = "SectionDetailPrefs";
     private static final String KEY_SCROLL_POSITION = "scroll_position_";
     private static final String KEY_CURRENT_TAB = "current_tab_";
-    private static final int PAGE_SIZE = 5;
 
     // Views
     private TextView tvBack;
@@ -55,6 +57,7 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
     private TextView tvHot;
     private TextView tvLatest;
     private RecyclerView recyclerView;
+    private SwipeRefreshLayout swipeRefreshLayout;
 
     // Data
     private Integer sectionId;
@@ -63,9 +66,10 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
     private PostAdapter postAdapter;
     private List<Post> postList;
     private String currentTab = "hot"; // "hot" 或 "latest"
-    private boolean isLoading = false;
-    private boolean hasMore = true;
-    private int currentPage = 1;
+
+    // 懒加载相关变量 - 使用 LazyLoadingHelper
+    private LazyLoadingHelper.PaginationConfig config;
+    private Map<String, LazyLoadingHelper.PaginationState> tabStates = new HashMap<>();
 
     // Cache
     private SharedPreferences prefs;
@@ -89,6 +93,9 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
                 return;
             }
 
+            // 初始化懒加载配置
+            initLazyLoadingConfig();
+
             // 初始化SharedPreferences和管理器
             prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             likeManager = new PostLikeManager(this);
@@ -100,6 +107,7 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
             initViews();
             setupRecyclerView();
             setupClickListeners();
+            setupSwipeRefresh();
 
             // 设置当前标签并加载数据
             switchTab(currentTab);
@@ -109,6 +117,17 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
             Log.e(TAG, "Error in onCreate: " + e.getMessage(), e);
             Toast.makeText(this, "页面加载失败", Toast.LENGTH_SHORT).show();
             finish();
+        }
+    }
+
+    private void initLazyLoadingConfig() {
+        // 创建懒加载配置
+        config = new LazyLoadingHelper.PaginationConfig(8, 6, 1);
+
+        // 为每个标签页初始化状态
+        String[] tabs = {"hot", "latest"};
+        for (String tab : tabs) {
+            tabStates.put(tab, new LazyLoadingHelper.PaginationState(config));
         }
     }
 
@@ -132,15 +151,36 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
         tvPost = findViewById(R.id.tv_post);
         tvHot = findViewById(R.id.tv_hot);
         tvLatest = findViewById(R.id.tv_latest);
-
-        // 修改这里：给RecyclerView一个新的ID，或者在布局中添加一个RecyclerView
-        // 方案1：如果你已经按照上面的布局修改了，那么这行代码保持不变
         recyclerView = findViewById(R.id.vp_posts);
-
-        // 方案2：如果你要保持ViewPager2，那么需要在布局中添加一个新的RecyclerView
-        // recyclerView = findViewById(R.id.rv_posts); // 需要在布局中添加这个ID的RecyclerView
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
 
         postList = new ArrayList<>();
+    }
+
+    private void setupSwipeRefresh() {
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setColorSchemeResources(
+                    android.R.color.holo_blue_bright,
+                    android.R.color.holo_green_light,
+                    android.R.color.holo_orange_light,
+                    android.R.color.holo_red_light
+            );
+
+            swipeRefreshLayout.setOnRefreshListener(() -> {
+                refreshCurrentTab();
+            });
+        }
+    }
+
+    private void refreshCurrentTab() {
+        // 重置当前标签的分页状态
+        LazyLoadingHelper.PaginationState state = getCurrentTabState();
+        if (state != null) {
+            state.reset();
+            // 清除缓存
+            dataCache.remove(currentTab);
+            loadPostDataWithCache(currentTab);
+        }
     }
 
     private void setupRecyclerView() {
@@ -153,26 +193,18 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
         postAdapter.setOnPostClickListener(this);
         postAdapter.setOnPostLikeListener(this);
 
-        // 设置滚动监听，实现懒加载
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
+        // 使用 LazyLoadingHelper 创建滚动监听器
+        LazyLoadingHelper.OnLoadMoreListener loadMoreListener = page -> {
+            loadMorePosts();
+        };
 
-                if (dy > 0) { // 向下滚动
-                    LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
-                    if (layoutManager != null) {
-                        int visibleItemCount = layoutManager.getChildCount();
-                        int totalItemCount = layoutManager.getItemCount();
-                        int firstVisibleItem = layoutManager.findFirstVisibleItemPosition();
+        RecyclerView.OnScrollListener scrollListener = LazyLoadingHelper.createScrollListener(
+                layoutManager,
+                getCurrentTabState(),
+                loadMoreListener
+        );
 
-                        if (!isLoading && hasMore && (visibleItemCount + firstVisibleItem) >= totalItemCount - 2) {
-                            loadMorePosts();
-                        }
-                    }
-                }
-            }
-        });
+        recyclerView.addOnScrollListener(scrollListener);
     }
 
     private void setupClickListeners() {
@@ -316,13 +348,14 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
     }
 
     private void loadPostDataWithCache(String type) {
+        LazyLoadingHelper.PaginationState state = tabStates.get(type);
+        if (state == null) return;
+
         // 检查是否有缓存数据
         List<Post> cachedData = dataCache.get(type);
-        if (cachedData != null && !cachedData.isEmpty()) {
+        if (cachedData != null && !cachedData.isEmpty() && state.getCurrentPage() == 1) {
             // 使用缓存数据
-            postList.clear();
-            postList.addAll(cachedData);
-            postAdapter.notifyDataSetChanged();
+            updatePostList(cachedData, false);
             restoreScrollPosition();
 
             // 可选：在后台刷新数据
@@ -343,9 +376,7 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
 
                     // 如果当前标签页还是这个类型，更新UI
                     if (currentTab.equals(type)) {
-                        postList.clear();
-                        postList.addAll(posts);
-                        postAdapter.notifyDataSetChanged();
+                        updatePostList(posts, false);
                     }
                 });
             }
@@ -358,47 +389,58 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
         });
     }
 
-    private void loadPosts(String type, boolean reset) {
-        if (isLoading) return;
+    private void loadPosts(String type, boolean isRefresh) {
+        LazyLoadingHelper.PaginationState state = tabStates.get(type);
+        if (state == null || state.isLoading()) return;
 
-        if (reset) {
-            currentPage = 1;
-            hasMore = true;
+        if (isRefresh) {
+            state.reset();
         }
 
-        isLoading = true;
+        state.setLoading(true);
 
-        loadPostsFromServer(type, currentPage, new ApiCallback<List<Post>>() {
+        if (swipeRefreshLayout != null && !swipeRefreshLayout.isRefreshing() && isRefresh) {
+            // 显示加载状态
+        }
+
+        loadPostsFromServer(type, state.getCurrentPage(), new ApiCallback<List<Post>>() {
             @Override
             public void onSuccess(List<Post> posts) {
                 runOnUiThread(() -> {
-                    isLoading = false;
+                    state.setLoading(false);
 
-                    if (reset) {
-                        // 更新缓存
-                        dataCache.put(type, new ArrayList<>(posts));
-
-                        postList.clear();
-                        postList.addAll(posts);
-                        postAdapter.notifyDataSetChanged();
-                        restoreScrollPosition();
-                    } else {
-                        // 添加到现有列表
-                        int oldSize = postList.size();
-                        postList.addAll(posts);
-                        postAdapter.notifyItemRangeInserted(oldSize, posts.size());
-
-                        // 更新缓存
-                        List<Post> cachedData = dataCache.get(type);
-                        if (cachedData != null) {
-                            cachedData.addAll(posts);
-                        }
+                    if (swipeRefreshLayout != null && swipeRefreshLayout.isRefreshing()) {
+                        swipeRefreshLayout.setRefreshing(false);
                     }
 
-                    // 判断是否还有更多数据
-                    hasMore = posts.size() == PAGE_SIZE;
-                    if (hasMore) {
-                        currentPage++;
+                    if (posts != null) {
+                        // 检查是否还有更多数据
+                        boolean hasMore = LazyLoadingHelper.shouldLoadMore(posts.size(), config.getPageSize());
+                        state.setHasMoreData(hasMore);
+
+                        if (isRefresh || state.getCurrentPage() == 1) {
+                            // 刷新或首次加载：替换数据
+                            dataCache.put(type, new ArrayList<>(posts));
+                            updatePostList(posts, false);
+                            if (isRefresh) {
+                                Toast.makeText(SectionDetailActivity.this, "刷新成功", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            // 加载更多：追加数据
+                            List<Post> cachedData = dataCache.get(type);
+                            if (cachedData == null) {
+                                cachedData = new ArrayList<>();
+                                dataCache.put(type, cachedData);
+                            }
+                            cachedData.addAll(posts);
+                            updatePostList(posts, true);
+                        }
+
+                        if (hasMore) {
+                            state.nextPage();
+                        }
+                    } else {
+                        state.setHasMoreData(false);
                     }
                 });
             }
@@ -406,7 +448,17 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
             @Override
             public void onError(String error) {
                 runOnUiThread(() -> {
-                    isLoading = false;
+                    state.setLoading(false);
+
+                    if (swipeRefreshLayout != null && swipeRefreshLayout.isRefreshing()) {
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+
+                    // 加载失败时回退页码
+                    if (!isRefresh && state.getCurrentPage() > 1) {
+                        state.previousPage();
+                    }
+
                     Toast.makeText(SectionDetailActivity.this, "加载帖子失败: " + error, Toast.LENGTH_SHORT).show();
                 });
             }
@@ -414,8 +466,22 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
     }
 
     private void loadMorePosts() {
-        if (!isLoading && hasMore) {
+        LazyLoadingHelper.PaginationState state = getCurrentTabState();
+        if (state != null && !state.isLoading() && state.hasMoreData()) {
             loadPosts(currentTab, false);
+        }
+    }
+
+    private void updatePostList(List<Post> newPosts, boolean isAppend) {
+        if (isAppend) {
+            int startPosition = postList.size();
+            postList.addAll(newPosts);
+            postAdapter.notifyItemRangeInserted(startPosition, newPosts.size());
+        } else {
+            postList.clear();
+            postList.addAll(newPosts);
+            postAdapter.notifyDataSetChanged();
+            restoreScrollPosition();
         }
     }
 
@@ -449,14 +515,20 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
     private String getPostsUrl(String type, int page) {
         String baseUrl;
         if ("hot".equals(type)) {
-            baseUrl = ApiConstants.GET_HOT_POSTS + "?limit=" + PAGE_SIZE + "&page=" + page;
+            baseUrl = ApiConstants.GET_HOT_POSTS;
+            baseUrl = LazyLoadingHelper.buildPaginationUrl(baseUrl, page, config.getPageSize());
             // 如果是热门帖子，也需要按板块过滤
             baseUrl += "&sectionId=" + sectionId;
         } else {
             baseUrl = ApiConstants.buildUrlWithParam(ApiConstants.GET_POSTS_BY_SECTION, sectionId.toString());
-            baseUrl += "?page=" + page + "&size=" + PAGE_SIZE + "&sort=latest";
+            baseUrl = LazyLoadingHelper.buildPaginationUrl(baseUrl, page, config.getPageSize());
+            baseUrl += "&sort=latest";
         }
         return baseUrl;
+    }
+
+    private LazyLoadingHelper.PaginationState getCurrentTabState() {
+        return tabStates.get(currentTab);
     }
 
     private void saveCurrentTab(String tab) {
@@ -496,11 +568,11 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
         Toast.makeText(this, "点击了用户: " + post.getNickName(), Toast.LENGTH_SHORT).show();
         // 可以跳转到用户资料页
     }
+
     @Override
     public void onDeleteClick(Post post, int position) {
         // 暂时不需要删除功能，可以空实现
     }
-
 
     @Override
     public void onCommentClick(Post post, int position) {
@@ -543,7 +615,7 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
     // 辅助方法：解析API响应
     private <T> ApiResponse<T> parseApiResponse(String jsonResponse, Class<T> dataClass) {
         try {
-            Gson gson = ApiService.getInstance().getGson(); // 使用 ApiService 的 Gson 实例
+            Gson gson = ApiService.getInstance().getGson();
             Type type = TypeToken.getParameterized(ApiResponse.class, dataClass).getType();
             return gson.fromJson(jsonResponse, type);
         } catch (Exception e) {
@@ -554,7 +626,7 @@ public class SectionDetailActivity extends AppCompatActivity implements PostAdap
 
     private <T> ApiResponse<List<T>> parseApiListResponse(String jsonResponse, Class<T> dataClass) {
         try {
-            Gson gson = ApiService.getInstance().getGson(); // 使用 ApiService 的 Gson 实例
+            Gson gson = ApiService.getInstance().getGson();
             Type listType = TypeToken.getParameterized(List.class, dataClass).getType();
             Type responseType = TypeToken.getParameterized(ApiResponse.class, listType).getType();
             return gson.fromJson(jsonResponse, responseType);

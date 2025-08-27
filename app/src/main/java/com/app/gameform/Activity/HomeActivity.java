@@ -44,6 +44,13 @@ public class HomeActivity extends AppCompatActivity implements
     private String currentTab = "recommend";
     private LinearLayoutManager layoutManager;
 
+    // 懒加载相关变量
+    private static final int PAGE_SIZE = 8; // 每页加载8个帖子
+    private static final int LOAD_MORE_THRESHOLD = 6; // 浏览到第6个时开始加载
+    private Map<String, Integer> currentPageMap = new HashMap<>(); // 每个标签的当前页码
+    private Map<String, Boolean> hasMoreDataMap = new HashMap<>(); // 每个标签是否还有更多数据
+    private Map<String, Boolean> isLoadingMap = new HashMap<>(); // 每个标签的加载状态
+
     // 数据缓存 - 缓存每个标签的数据
     private Map<String, List<Post>> dataCache = new HashMap<>();
 
@@ -54,15 +61,17 @@ public class HomeActivity extends AppCompatActivity implements
             setContentView(R.layout.home);
 
             initViews();
+            initLazyLoadingData();
             setupRecyclerView();
             setupTabListeners();
             setupSearchListener();
             setupBottomNavigation();
             setupSwipeRefresh();
+            setupScrollListener();
 
             // 默认显示推荐
             switchTab(currentTab);
-            loadPostDataWithCache(currentTab);
+            loadPostDataWithCache(currentTab, true);
         } catch (Exception e) {
             e.printStackTrace();
             Log.e("HomeActivity", "Error in onCreate: " + e.getMessage());
@@ -81,6 +90,15 @@ public class HomeActivity extends AppCompatActivity implements
         postList = new ArrayList<>();
     }
 
+    private void initLazyLoadingData() {
+        String[] tabs = {"hot", "recommend", "follow", "new"};
+        for (String tab : tabs) {
+            currentPageMap.put(tab, 1);
+            hasMoreDataMap.put(tab, true);
+            isLoadingMap.put(tab, false);
+        }
+    }
+
     private void setupRecyclerView() {
         layoutManager = new LinearLayoutManager(this);
         postAdapter = new PostAdapter(this, postList);
@@ -92,8 +110,31 @@ public class HomeActivity extends AppCompatActivity implements
         postAdapter.setOnPostLikeListener(this);
     }
 
+    private void setupScrollListener() {
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                if (dy > 0) { // 向下滑动
+                    int visibleItemCount = layoutManager.getChildCount();
+                    int totalItemCount = layoutManager.getItemCount();
+                    int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                    // 计算当前可见的最后一个item的位置
+                    int lastVisibleItem = firstVisibleItemPosition + visibleItemCount;
+
+                    // 当浏览到倒数第3个item时开始加载更多(总数-当前可见最后位置<=阈值)
+                    if (!isCurrentTabLoading() && hasMoreData(currentTab) &&
+                            (totalItemCount - lastVisibleItem) <= (PAGE_SIZE - LOAD_MORE_THRESHOLD)) {
+                        loadMorePosts();
+                    }
+                }
+            }
+        });
+    }
+
     private void setupSwipeRefresh() {
-        // 设置下拉刷新的颜色
         swipeRefreshLayout.setColorSchemeResources(
                 android.R.color.holo_blue_bright,
                 android.R.color.holo_green_light,
@@ -101,79 +142,65 @@ public class HomeActivity extends AppCompatActivity implements
                 android.R.color.holo_red_light
         );
 
-        // 设置下拉刷新监听器
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                refreshCurrentTab();
-            }
-        });
+        swipeRefreshLayout.setOnRefreshListener(this::refreshCurrentTab);
     }
 
     private void refreshCurrentTab() {
-        // 下拉刷新时，强制重新加载数据
-        loadPostData(currentTab, true);
+        // 重置页码和状态
+        resetTabData(currentTab);
+        loadPostDataWithCache(currentTab, true);
     }
 
     private void setupTabListeners() {
         tabHot.setOnClickListener(v -> {
-            switchTab("hot");
-            loadPostDataWithCache("hot");
+            if (!currentTab.equals("hot")) {
+                switchTab("hot");
+                loadPostDataWithCache("hot", true);
+            }
         });
 
         tabRecommend.setOnClickListener(v -> {
-            switchTab("recommend");
-            loadPostDataWithCache("recommend");
+            if (!currentTab.equals("recommend")) {
+                switchTab("recommend");
+                loadPostDataWithCache("recommend", true);
+            }
         });
 
         tabFollow.setOnClickListener(v -> {
-            switchTab("follow");
-            loadPostDataWithCache("follow");
+            if (!currentTab.equals("follow")) {
+                switchTab("follow");
+                loadPostDataWithCache("follow", true);
+            }
         });
 
         tabNew.setOnClickListener(v -> {
-            switchTab("new");
-            loadPostDataWithCache("new");
+            if (!currentTab.equals("new")) {
+                switchTab("new");
+                loadPostDataWithCache("new", true);
+            }
         });
     }
 
     private void setupSearchListener() {
         iconSearch.setOnClickListener(v -> {
-            // 跳转到搜索页面
             Intent intent = new Intent(this, SearchActivity.class);
             startActivity(intent);
         });
     }
 
     private void setupBottomNavigation() {
-        // 使用底部导航栏工具类
         bottomNavigationHelper = new BottomNavigationHelper(this, findViewById(R.id.bottomNavigationInclude));
         bottomNavigationHelper.setSelectedItem(BottomNavigationHelper.NavigationItem.HOME);
-
-        // 设置主页双击监听器
         bottomNavigationHelper.setOnHomeDoubleClickListener(this);
     }
 
-    /**
-     * 实现双击主页按钮回调
-     * 双击主页按钮时，滚动到顶部并刷新数据
-     */
     @Override
     public void onHomeDoubleClick() {
-        // 滚动到顶部（平滑滚动）
         recyclerView.smoothScrollToPosition(0);
-
-        // 延迟一点时间再刷新，让滚动动画先执行
-        recyclerView.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                // 刷新当前标签的数据
-                refreshCurrentTab();
-
-                // 显示提示
-                Toast.makeText(HomeActivity.this, "已刷新", Toast.LENGTH_SHORT).show();
-            }
-        }, 200); // 延迟200毫秒
+        recyclerView.postDelayed(() -> {
+            refreshCurrentTab();
+            Toast.makeText(HomeActivity.this, "已刷新", Toast.LENGTH_SHORT).show();
+        }, 200);
     }
 
     private void switchTab(String tab) {
@@ -199,13 +226,10 @@ public class HomeActivity extends AppCompatActivity implements
     private void resetTabStyles() {
         tabHot.setTextColor(Color.parseColor("#999999"));
         tabHot.setTypeface(null, Typeface.NORMAL);
-
         tabRecommend.setTextColor(Color.parseColor("#999999"));
         tabRecommend.setTypeface(null, Typeface.NORMAL);
-
         tabFollow.setTextColor(Color.parseColor("#999999"));
         tabFollow.setTypeface(null, Typeface.NORMAL);
-
         tabNew.setTextColor(Color.parseColor("#999999"));
         tabNew.setTypeface(null, Typeface.NORMAL);
     }
@@ -218,76 +242,84 @@ public class HomeActivity extends AppCompatActivity implements
     /**
      * 带缓存的数据加载
      */
-    private void loadPostDataWithCache(String type) {
-        List<Post> cachedData = dataCache.get(type);
-        if (cachedData != null && !cachedData.isEmpty()) {
-            postList.clear();
-            postList.addAll(cachedData);
-            postAdapter.notifyDataSetChanged();
-
-            // 可选：后台刷新
-            refreshDataInBackground(type);
+    private void loadPostDataWithCache(String type, boolean isRefresh) {
+        if (isRefresh) {
+            resetTabData(type);
+            loadPostData(type, true, false);
         } else {
-            loadPostData(type, false);
+            List<Post> cachedData = dataCache.get(type);
+            if (cachedData != null && !cachedData.isEmpty() && getCurrentPage(type) == 1) {
+                updatePostList(cachedData, false);
+            } else {
+                loadPostData(type, false, false);
+            }
         }
     }
 
-    private void refreshDataInBackground(String type) {
-        String url = getApiUrl(type);
-        ApiService.getInstance().getPosts(url, new ApiCallback<List<Post>>() {
-            @Override
-            public void onSuccess(List<Post> posts) {
-                runOnUiThread(() -> {
-                    dataCache.put(type, new ArrayList<>(posts));
-                    if (currentTab.equals(type)) {
-                        postList.clear();
-                        postList.addAll(posts);
-                        postAdapter.notifyDataSetChanged();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() ->
-                        Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show()
-                );
-            }
-        });
+    /**
+     * 加载更多帖子
+     */
+    private void loadMorePosts() {
+        if (!isCurrentTabLoading() && hasMoreData(currentTab)) {
+            int nextPage = getCurrentPage(currentTab) + 1;
+            setCurrentPage(currentTab, nextPage);
+            loadPostData(currentTab, false, true);
+        }
     }
 
     /**
      * 加载帖子数据
-     * @param type 帖子类型
-     * @param isRefresh 是否是下拉刷新
      */
-    private void loadPostData(String type, boolean isRefresh) {
-        if (!isRefresh) {
+    private void loadPostData(String type, boolean isRefresh, boolean isLoadMore) {
+        if (isCurrentTabLoading()) return;
+
+        setLoading(type, true);
+
+        if (!isRefresh && !isLoadMore) {
             showLoading();
         }
 
-        String url = getApiUrl(type);
+        String url = getApiUrl(type, getCurrentPage(type), PAGE_SIZE);
 
         ApiService.getInstance().getPosts(url, new ApiCallback<List<Post>>() {
             @Override
             public void onSuccess(List<Post> posts) {
                 runOnUiThread(() -> {
-                    if (!isRefresh) {
+                    setLoading(type, false);
+
+                    if (!isRefresh && !isLoadMore) {
                         hideLoading();
                     }
 
-                    // 停止下拉刷新动画
                     if (swipeRefreshLayout.isRefreshing()) {
                         swipeRefreshLayout.setRefreshing(false);
                     }
 
-                    dataCache.put(type, new ArrayList<>(posts));
-                    postList.clear();
-                    postList.addAll(posts);
-                    postAdapter.notifyDataSetChanged();
+                    // 检查是否还有更多数据
+                    boolean hasMore = posts != null && posts.size() == PAGE_SIZE;
+                    setHasMoreData(type, hasMore);
 
-                    if (isRefresh) {
-                        Toast.makeText(HomeActivity.this, "刷新成功", Toast.LENGTH_SHORT).show();
+                    if (posts != null) {
+                        if (isRefresh || (!isLoadMore && getCurrentPage(type) == 1)) {
+                            // 刷新或首次加载：替换所有数据
+                            dataCache.put(type, new ArrayList<>(posts));
+                            updatePostList(posts, false);
+                        } else if (isLoadMore) {
+                            // 加载更多：追加数据
+                            List<Post> cachedData = dataCache.get(type);
+                            if (cachedData == null) {
+                                cachedData = new ArrayList<>();
+                                dataCache.put(type, cachedData);
+                            }
+                            cachedData.addAll(posts);
+                            updatePostList(posts, true);
+                        }
+
+                        if (isRefresh) {
+                            Toast.makeText(HomeActivity.this, "刷新成功", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        setHasMoreData(type, false);
                     }
                 });
             }
@@ -295,13 +327,19 @@ public class HomeActivity extends AppCompatActivity implements
             @Override
             public void onError(String error) {
                 runOnUiThread(() -> {
-                    if (!isRefresh) {
+                    setLoading(type, false);
+
+                    if (!isRefresh && !isLoadMore) {
                         hideLoading();
                     }
 
-                    // 停止下拉刷新动画
                     if (swipeRefreshLayout.isRefreshing()) {
                         swipeRefreshLayout.setRefreshing(false);
+                    }
+
+                    // 加载失败时回退页码
+                    if (isLoadMore && getCurrentPage(type) > 1) {
+                        setCurrentPage(type, getCurrentPage(type) - 1);
                     }
 
                     Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show();
@@ -310,27 +348,68 @@ public class HomeActivity extends AppCompatActivity implements
         });
     }
 
-    /**
-     * 重载方法，保持向后兼容
-     */
-    private void loadPostData(String type) {
-        loadPostData(type, false);
+    private void updatePostList(List<Post> newPosts, boolean isAppend) {
+        if (isAppend) {
+            int startPosition = postList.size();
+            postList.addAll(newPosts);
+            postAdapter.notifyItemRangeInserted(startPosition, newPosts.size());
+        } else {
+            postList.clear();
+            postList.addAll(newPosts);
+            postAdapter.notifyDataSetChanged();
+        }
     }
 
-    private String getApiUrl(String type) {
+    private String getApiUrl(String type, int page, int pageSize) {
         String baseUrl = USER_POST;
+        String url;
+
         switch (type) {
             case "hot":
-                return baseUrl + "hot?limit=20";
+                url = baseUrl + "hot";
+                break;
             case "recommend":
-                return baseUrl + "list";
             case "follow":
-                return baseUrl + "list";
             case "new":
-                return baseUrl + "list";
             default:
-                return baseUrl + "list";
+                url = baseUrl + "list";
+                break;
         }
+
+        // 添加分页参数
+        String separator = url.contains("?") ? "&" : "?";
+        return url + separator + "page=" + page + "&size=" + pageSize;
+    }
+
+    // 辅助方法
+    private void resetTabData(String tab) {
+        setCurrentPage(tab, 1);
+        setHasMoreData(tab, true);
+        setLoading(tab, false);
+    }
+
+    private int getCurrentPage(String tab) {
+        return currentPageMap.getOrDefault(tab, 1);
+    }
+
+    private void setCurrentPage(String tab, int page) {
+        currentPageMap.put(tab, page);
+    }
+
+    private boolean hasMoreData(String tab) {
+        return hasMoreDataMap.getOrDefault(tab, true);
+    }
+
+    private void setHasMoreData(String tab, boolean hasMore) {
+        hasMoreDataMap.put(tab, hasMore);
+    }
+
+    private boolean isCurrentTabLoading() {
+        return isLoadingMap.getOrDefault(currentTab, false);
+    }
+
+    private void setLoading(String tab, boolean loading) {
+        isLoadingMap.put(tab, loading);
     }
 
     private void showLoading() {
@@ -341,7 +420,7 @@ public class HomeActivity extends AppCompatActivity implements
         // TODO: 隐藏加载动画
     }
 
-    // 点击事件
+    // 点击事件实现
     @Override
     public void onPostClick(Post post, int position) {
         Intent intent = new Intent(this, PostDetailActivity.class);
@@ -369,7 +448,6 @@ public class HomeActivity extends AppCompatActivity implements
         Toast.makeText(this, "点击了更多", Toast.LENGTH_SHORT).show();
     }
 
-    // 点赞功能
     PostLikeManager likeManager = new PostLikeManager(this);
 
     @Override
@@ -397,7 +475,6 @@ public class HomeActivity extends AppCompatActivity implements
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 清理资源
         if (bottomNavigationHelper != null) {
             bottomNavigationHelper.destroy();
         }

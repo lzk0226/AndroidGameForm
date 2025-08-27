@@ -27,7 +27,6 @@ import com.app.gameform.network.ApiConstants;
 import com.app.gameform.network.ApiService;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class PostListFragment extends Fragment {
@@ -41,11 +40,19 @@ public class PostListFragment extends Fragment {
     private LinearLayout emptyLayout;
     private TextView tvEmptyText;
 
+    // 懒加载相关变量
+    private static final int PAGE_SIZE = 8; // 每页加载8个帖子
+    private static final int LOAD_MORE_THRESHOLD = 6; // 浏览到第6个时开始加载
+    private int currentPage = 1;
+    private boolean hasMoreData = true;
+    private boolean isLoading = false;
+
     // 根据类型使用不同的适配器
     private PostAdapter postAdapter;
     private DraftAdapter draftAdapter;
     private List<Post> postList;
     private List<Draft> draftList;
+    private LinearLayoutManager layoutManager;
 
     // 草稿管理器
     private DraftManager draftManager;
@@ -64,7 +71,6 @@ public class PostListFragment extends Fragment {
         if (getArguments() != null) {
             type = getArguments().getInt(ARG_TYPE);
         }
-        // 初始化草稿管理器
         if (type == TYPE_DRAFT) {
             draftManager = DraftManager.getInstance(requireContext());
         }
@@ -76,6 +82,7 @@ public class PostListFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_post_list, container, false);
         initViews(view);
         setupRecyclerView();
+        setupScrollListener();
         loadData();
         return view;
     }
@@ -87,12 +94,39 @@ public class PostListFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        layoutManager = new LinearLayoutManager(getContext());
+        recyclerView.setLayoutManager(layoutManager);
 
         if (type == TYPE_DRAFT) {
             setupDraftRecyclerView();
         } else {
             setupPostRecyclerView();
+        }
+    }
+
+    private void setupScrollListener() {
+        // 只对已发布帖子设置滚动监听器，草稿不需要分页
+        if (type == TYPE_PUBLISHED) {
+            recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+
+                    if (dy > 0 && !isLoading && hasMoreData) { // 向下滑动且未在加载且还有更多数据
+                        int visibleItemCount = layoutManager.getChildCount();
+                        int totalItemCount = layoutManager.getItemCount();
+                        int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                        // 计算当前可见的最后一个item的位置
+                        int lastVisibleItem = firstVisibleItemPosition + visibleItemCount;
+
+                        // 当浏览到倒数第3个item时开始加载更多
+                        if ((totalItemCount - lastVisibleItem) <= (PAGE_SIZE - LOAD_MORE_THRESHOLD)) {
+                            loadMorePosts();
+                        }
+                    }
+                }
+            });
         }
     }
 
@@ -104,13 +138,11 @@ public class PostListFragment extends Fragment {
         draftAdapter.setOnDraftClickListener(new DraftAdapter.OnDraftClickListener() {
             @Override
             public void onDraftClick(Draft draft, int position) {
-                // 编辑草稿 - 跳转到发帖页面
                 editDraft(draft);
             }
 
             @Override
             public void onMoreClick(Draft draft, int position) {
-                // 显示草稿操作菜单（删除等）
                 showDraftOptions(draft, position);
             }
         });
@@ -124,17 +156,17 @@ public class PostListFragment extends Fragment {
         postAdapter.setOnPostClickListener(new PostAdapter.OnPostClickListener() {
             @Override
             public void onPostClick(Post post, int position) {
-                // TODO: 处理帖子点击事件 - 可以跳转到帖子详情页
+                // TODO: 处理帖子点击事件
             }
 
             @Override
             public void onUserClick(Post post, int position) {
-                // TODO: 处理用户点击事件 - 可以跳转到用户主页
+                // TODO: 处理用户点击事件
             }
 
             @Override
             public void onCommentClick(Post post, int position) {
-                // TODO: 处理评论点击事件 - 可以跳转到评论页面
+                // TODO: 处理评论点击事件
             }
 
             @Override
@@ -144,21 +176,18 @@ public class PostListFragment extends Fragment {
 
             @Override
             public void onMoreClick(Post post, int position) {
-                // 处理更多操作点击事件 - 显示编辑删除选项
                 showPostOptions(post, position);
             }
 
             @Override
             public void onDeleteClick(Post post, int position) {
-                // 暂时不需要删除功能，可以空实现
+                // 暂时不需要删除功能
             }
-
         });
 
         postAdapter.setOnPostLikeListener(new PostAdapter.OnPostLikeListener() {
             @Override
             public void onLikeClick(Post post, int position) {
-                // TODO: 处理点赞事件
                 handlePostLike(post, position);
             }
         });
@@ -166,20 +195,33 @@ public class PostListFragment extends Fragment {
     }
 
     private void loadData() {
+        resetPaginationData();
         switch (type) {
             case TYPE_DRAFT:
                 loadDraftPosts();
                 updateEmptyText("暂无草稿");
                 break;
             case TYPE_PUBLISHED:
-                loadPublishedPosts();
+                loadPublishedPosts(false);
                 updateEmptyText("暂无已发布内容");
                 break;
         }
     }
 
+    private void resetPaginationData() {
+        currentPage = 1;
+        hasMoreData = true;
+        isLoading = false;
+    }
+
+    private void loadMorePosts() {
+        if (type == TYPE_PUBLISHED && !isLoading && hasMoreData) {
+            currentPage++;
+            loadPublishedPosts(true);
+        }
+    }
+
     private void loadDraftPosts() {
-        // 从本地加载草稿数据
         if (draftManager != null) {
             List<Draft> localDrafts = draftManager.getAllDrafts();
             draftList.clear();
@@ -188,18 +230,24 @@ public class PostListFragment extends Fragment {
         updateUI();
     }
 
-    private void loadPublishedPosts() {
-        // 调用后端API获取当前用户的已发布帖子列表
+    private void loadPublishedPosts(boolean isLoadMore) {
+        if (isLoading) return;
+
+        isLoading = true;
+
+        // 构建带分页参数的URL
+        String url = ApiConstants.GET_MY_POSTS + "?page=" + currentPage + "&size=" + PAGE_SIZE;
+
         ApiService.getInstance().getRequestWithAuth(
                 getContext(),
-                ApiConstants.GET_MY_POSTS,
+                url,
                 new ApiCallback<String>() {
                     @Override
                     public void onSuccess(String response) {
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
+                                isLoading = false;
                                 try {
-                                    // 使用 ApiService 中的 gson 解析响应
                                     ApiService.ApiResponse<List<Post>> apiResponse =
                                             ApiService.getInstance().getGson().fromJson(
                                                     response,
@@ -207,17 +255,37 @@ public class PostListFragment extends Fragment {
                                             );
 
                                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                                        postList.clear();
-                                        postList.addAll(apiResponse.getData());
+                                        List<Post> newPosts = apiResponse.getData();
+
+                                        // 检查是否还有更多数据
+                                        hasMoreData = newPosts.size() == PAGE_SIZE;
+
+                                        if (isLoadMore) {
+                                            // 加载更多：追加数据
+                                            int startPosition = postList.size();
+                                            postList.addAll(newPosts);
+                                            postAdapter.notifyItemRangeInserted(startPosition, newPosts.size());
+                                        } else {
+                                            // 首次加载或刷新：替换数据
+                                            postList.clear();
+                                            postList.addAll(newPosts);
+                                            postAdapter.notifyDataSetChanged();
+                                        }
                                     } else {
-                                        postList.clear();
+                                        if (!isLoadMore) {
+                                            postList.clear();
+                                        }
+                                        hasMoreData = false;
                                         Toast.makeText(getContext(),
                                                 apiResponse.getMsg() != null ? apiResponse.getMsg() : "获取数据失败",
                                                 Toast.LENGTH_SHORT).show();
                                     }
                                     updateUI();
                                 } catch (Exception e) {
-                                    postList.clear();
+                                    if (!isLoadMore) {
+                                        postList.clear();
+                                    }
+                                    hasMoreData = false;
                                     updateUI();
                                     Toast.makeText(getContext(), "解析数据失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                                 }
@@ -229,7 +297,15 @@ public class PostListFragment extends Fragment {
                     public void onError(String error) {
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
-                                postList.clear();
+                                isLoading = false;
+
+                                // 加载失败时回退页码
+                                if (isLoadMore && currentPage > 1) {
+                                    currentPage--;
+                                } else if (!isLoadMore) {
+                                    postList.clear();
+                                }
+
                                 updateUI();
                                 Toast.makeText(getContext(), "加载失败: " + error, Toast.LENGTH_SHORT).show();
                             });
@@ -260,24 +336,16 @@ public class PostListFragment extends Fragment {
             } else {
                 recyclerView.setVisibility(View.VISIBLE);
                 emptyLayout.setVisibility(View.GONE);
-                postAdapter.notifyDataSetChanged();
             }
         }
     }
 
-    /**
-     * 编辑草稿 - 跳转到发帖页面
-     */
     private void editDraft(Draft draft) {
         if (draft != null && draft.getDraftId() != null) {
-            // 使用NewPostActivity的静态方法启动编辑草稿
             NewPostActivity.startForEditDraft(requireContext(), draft.getDraftId());
         }
     }
 
-    /**
-     * 显示草稿操作选项对话框
-     */
     private void showDraftOptions(Draft draft, int position) {
         if (draft == null || getContext() == null) return;
 
@@ -298,9 +366,6 @@ public class PostListFragment extends Fragment {
         builder.show();
     }
 
-    /**
-     * 显示删除草稿确认对话框
-     */
     private void showDeleteDraftConfirm(Draft draft, int position) {
         if (draft == null || getContext() == null) return;
 
@@ -320,15 +385,11 @@ public class PostListFragment extends Fragment {
         dialog.show();
     }
 
-    /**
-     * 删除草稿
-     */
     private void deleteDraft(Draft draft, int position) {
         if (draft == null || draftManager == null) return;
 
         boolean success = draftManager.deleteDraft(draft.getDraftId());
         if (success) {
-            // 从列表中移除
             if (position >= 0 && position < draftList.size()) {
                 draftList.remove(position);
                 draftAdapter.notifyItemRemoved(position);
@@ -341,9 +402,6 @@ public class PostListFragment extends Fragment {
         }
     }
 
-    /**
-     * 显示帖子操作选项对话框
-     */
     private void showPostOptions(Post post, int position) {
         if (post == null || getContext() == null) return;
 
@@ -364,17 +422,11 @@ public class PostListFragment extends Fragment {
         builder.show();
     }
 
-    /**
-     * 编辑帖子
-     */
     private void editPost(Post post) {
         // TODO: 跳转到编辑帖子页面
         Toast.makeText(getContext(), "编辑功能待开发", Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * 显示删除帖子确认对话框
-     */
     private void showDeletePostConfirm(Post post, int position) {
         if (post == null || getContext() == null) return;
 
@@ -394,13 +446,9 @@ public class PostListFragment extends Fragment {
         dialog.show();
     }
 
-    /**
-     * 删除帖子
-     */
     private void deletePost(Post post, int position) {
         if (post == null || getContext() == null) return;
 
-        // 调用后端API删除帖子
         String deleteUrl = ApiConstants.USER_POST + post.getPostId();
 
         ApiService.getInstance().deleteRequestWithAuth(
@@ -411,7 +459,6 @@ public class PostListFragment extends Fragment {
                     public void onSuccess(String response) {
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
-                                // 从列表中移除
                                 if (position >= 0 && position < postList.size()) {
                                     postList.remove(position);
                                     postAdapter.notifyItemRemoved(position);
@@ -435,13 +482,9 @@ public class PostListFragment extends Fragment {
         );
     }
 
-    /**
-     * 处理帖子点赞
-     */
     private void handlePostLike(Post post, int position) {
         if (post == null || getContext() == null) return;
 
-        // 先检查点赞状态
         ApiService.getInstance().checkPostLikeStatus(
                 getContext(),
                 post.getPostId(),
@@ -451,10 +494,8 @@ public class PostListFragment extends Fragment {
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 if (hasLiked) {
-                                    // 如果已点赞，则取消点赞
                                     unlikePost(post, position);
                                 } else {
-                                    // 如果未点赞，则点赞
                                     likePost(post, position);
                                 }
                             });
@@ -473,9 +514,6 @@ public class PostListFragment extends Fragment {
         );
     }
 
-    /**
-     * 点赞帖子
-     */
     private void likePost(Post post, int position) {
         ApiService.getInstance().likePost(
                 getContext(),
@@ -485,7 +523,6 @@ public class PostListFragment extends Fragment {
                     public void onSuccess(Boolean success) {
                         if (getActivity() != null && success) {
                             getActivity().runOnUiThread(() -> {
-                                // 更新点赞数
                                 int currentCount = post.getLikeCount() != null ? post.getLikeCount() : 0;
                                 post.setLikeCount(currentCount + 1);
                                 postAdapter.notifyItemChanged(position);
@@ -506,9 +543,6 @@ public class PostListFragment extends Fragment {
         );
     }
 
-    /**
-     * 取消点赞帖子
-     */
     private void unlikePost(Post post, int position) {
         ApiService.getInstance().unlikePost(
                 getContext(),
@@ -518,7 +552,6 @@ public class PostListFragment extends Fragment {
                     public void onSuccess(Boolean success) {
                         if (getActivity() != null && success) {
                             getActivity().runOnUiThread(() -> {
-                                // 更新点赞数
                                 int currentCount = post.getLikeCount() != null ? post.getLikeCount() : 0;
                                 post.setLikeCount(Math.max(0, currentCount - 1));
                                 postAdapter.notifyItemChanged(position);
@@ -541,6 +574,7 @@ public class PostListFragment extends Fragment {
 
     // 公共方法供外部调用
     public void refreshData() {
+        resetPaginationData();
         loadData();
     }
 
@@ -572,18 +606,13 @@ public class PostListFragment extends Fragment {
         }
     }
 
-    /**
-     * 页面恢复时刷新数据
-     */
     @Override
     public void onResume() {
         super.onResume();
         if (type == TYPE_DRAFT) {
-            // 从其他页面返回时刷新草稿列表
             loadDraftPosts();
         } else if (type == TYPE_PUBLISHED) {
-            // 从其他页面返回时刷新已发布列表
-            loadPublishedPosts();
+            refreshData();
         }
     }
 }

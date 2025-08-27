@@ -444,6 +444,104 @@ public class ApiService {
         return gson;
     }
 
+    // Add these methods to your existing ApiService.java class
+
+    /**
+     * 带分页的帖子列表请求
+     */
+    public void getPostsWithPagination(String baseUrl, int page, int size, ApiCallback<List<Post>> callback) {
+        String url = baseUrl + "?page=" + page + "&size=" + size;
+        getPosts(url, callback);
+    }
+
+    /**
+     * 带认证的分页帖子请求
+     */
+    public void getPostsWithAuthAndPagination(Context context, String baseUrl, int page, int size, ApiCallback<List<Post>> callback) {
+        String url = baseUrl + "?page=" + page + "&size=" + size;
+        String token = SharedPrefManager.getInstance(context).getToken();
+
+        if (TextUtils.isEmpty(token)) {
+            callback.onError("token为空，无法执行请求，请重新登录");
+            return;
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", token.startsWith("Bearer ") ? token : "Bearer " + token)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    if (response.isSuccessful()) {
+                        String json = response.body().string();
+
+                        Type listType = new TypeToken<ApiResponse<List<Post>>>(){}.getType();
+                        ApiResponse<List<Post>> apiResponse = gson.fromJson(json, listType);
+
+                        if (apiResponse.isSuccess()) {
+                            callback.onSuccess(apiResponse.getData());
+                        } else {
+                            callback.onError(apiResponse.getMsg());
+                        }
+                    } else {
+                        callback.onError("请求失败: " + response.code());
+                    }
+                } catch (Exception e) {
+                    callback.onError("解析响应失败: " + e.getMessage());
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取热门帖子（带分页）
+     */
+    public void getHotPostsWithPagination(int page, int size, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.GET_HOT_POSTS + "?page=" + page + "&size=" + size;
+        getPosts(url, callback);
+    }
+
+    /**
+     * 获取我的帖子（带分页）
+     */
+    public void getMyPostsWithPagination(Context context, int page, int size, ApiCallback<List<Post>> callback) {
+        getPostsWithAuthAndPagination(context, ApiConstants.GET_MY_POSTS, page, size, callback);
+    }
+
+    /**
+     * 根据版块获取帖子（带分页）
+     */
+    public void getPostsBySectionWithPagination(int sectionId, int page, int size, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.GET_POSTS_BY_SECTION + sectionId + "?page=" + page + "&size=" + size;
+        getPosts(url, callback);
+    }
+
+    /**
+     * 根据用户获取帖子（带分页）
+     */
+    public void getPostsByUserWithPagination(int userId, int page, int size, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.GET_POSTS_BY_USER + userId + "?page=" + page + "&size=" + size;
+        getPosts(url, callback);
+    }
+
+    /**
+     * 搜索帖子（带分页）
+     */
+    public void searchPostsWithPagination(String title, int page, int size, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.SEARCH_POSTS + "?title=" + title + "&page=" + page + "&size=" + size;
+        getPosts(url, callback);
+    }
+
     /**
      * API响应包装类
      */
