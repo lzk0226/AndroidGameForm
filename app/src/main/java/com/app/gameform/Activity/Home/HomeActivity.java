@@ -204,7 +204,7 @@ public class HomeActivity extends BaseActivity implements
         recyclerView.smoothScrollToPosition(0);
         recyclerView.postDelayed(() -> {
             refreshCurrentTab();
-            Toast.makeText(HomeActivity.this, "已刷新", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(HomeActivity.this, "已刷新", Toast.LENGTH_SHORT).show();
         }, 200);
     }
 
