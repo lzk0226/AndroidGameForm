@@ -136,14 +136,14 @@ public class ImageUtils {
         Log.d(TAG, "Loading avatar: " + fullUrl);
 
         if (fullUrl != null && !fullUrl.isEmpty() && isImageFile(fullUrl)) {
-            RequestOptions options = createRequestOptions(R.mipmap.ic_launcher, R.mipmap.ic_launcher)
+            RequestOptions options = createRequestOptions(R.drawable.ic_default_avatar, R.drawable.ic_default_avatar)
                     .circleCrop();
 
             RequestListener<Drawable> listener = new RequestListener<Drawable>() {
                 @Override
                 public boolean onLoadFailed(GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
                     Log.e(TAG, "Failed to load avatar: " + fullUrl, e);
-                    imageView.setImageResource(R.mipmap.ic_launcher);
+                    imageView.setImageResource(R.drawable.ic_default_avatar);
                     return false;
                 }
 
@@ -157,7 +157,7 @@ public class ImageUtils {
             loadImageWithGlide(context, imageView, fullUrl, options, listener);
         } else {
             Log.w(TAG, "Invalid avatar URL: " + avatarUrl);
-            imageView.setImageResource(R.mipmap.ic_launcher);
+            imageView.setImageResource(R.drawable.ic_default_avatar);
         }
     }
 
