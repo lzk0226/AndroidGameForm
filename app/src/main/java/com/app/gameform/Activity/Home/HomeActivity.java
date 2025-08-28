@@ -86,7 +86,7 @@ public class HomeActivity extends BaseActivity implements
         recyclerView = findViewById(R.id.recyclerView);
         tabHot = findViewById(R.id.tab_hot);
         tabRecommend = findViewById(R.id.tab_recommend);
-        tabDiscover = findViewById(R.id.tab_discover); // 对应布局里 id 也要改
+        tabDiscover = findViewById(R.id.tab_discover);
         tabNew = findViewById(R.id.tab_new);
         iconSearch = findViewById(R.id.icon_search);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
@@ -95,7 +95,7 @@ public class HomeActivity extends BaseActivity implements
     }
 
     private void initLazyLoadingData() {
-        String[] tabs = {"hot", "recommend", "discover", "new"}; // follow → discover
+        String[] tabs = {"hot", "recommend", "discover", "new"};
         for (String tab : tabs) {
             currentPageMap.put(tab, 1);
             hasMoreDataMap.put(tab, true);
@@ -264,7 +264,6 @@ public class HomeActivity extends BaseActivity implements
         }
     }
 
-    // 在 HomeActivity.java 的 loadPostData 方法中修改推荐部分的代码
 
     private void loadPostData(String type, boolean isRefresh, boolean isLoadMore) {
         if (isCurrentTabLoading()) return;
@@ -344,7 +343,7 @@ public class HomeActivity extends BaseActivity implements
         });
     }
     /**
-     * 处理帖子列表响应
+     * 处理帖子列表响应 - 修改版本，添加用户标识
      */
     private void handlePostsResponse(List<Post> posts, String type, boolean isRefresh, boolean isLoadMore) {
         runOnUiThread(() -> {
@@ -358,23 +357,24 @@ public class HomeActivity extends BaseActivity implements
                 swipeRefreshLayout.setRefreshing(false);
             }
 
-            // 检查是否还有更多数据
             boolean hasMore = posts != null && posts.size() == PAGE_SIZE;
 
-            // 对于推荐页面，如果返回的帖子数量少于PAGE_SIZE，说明没有更多数据
-            if ("recommend".equals(type)) {
-                hasMore = posts != null && posts.size() >= PAGE_SIZE;
+            // 对于推荐页面的特殊处理
+            if ("recommend".equals(type) && posts != null) {
+                hasMore = posts.size() >= PAGE_SIZE;
             }
 
             setHasMoreData(type, hasMore);
 
             if (posts != null) {
                 if (isRefresh || (!isLoadMore && getCurrentPage(type) == 1)) {
-                    // 刷新或首次加载：替换所有数据
+                    // 刷新时清除本地缓存，确保获取最新推荐
+                    if ("recommend".equals(type)) {
+                        dataCache.remove(type); // 清除本地缓存
+                    }
                     dataCache.put(type, new ArrayList<>(posts));
                     updatePostList(posts, false);
                 } else if (isLoadMore) {
-                    // 加载更多：追加数据
                     List<Post> cachedData = dataCache.get(type);
                     if (cachedData == null) {
                         cachedData = new ArrayList<>();
@@ -399,7 +399,7 @@ public class HomeActivity extends BaseActivity implements
                 }
 
                 if (isRefresh) {
-                    String message = "recommend".equals(type) ? "个性化推荐已更新" : "刷新成功";
+                    String message = "recommend".equals(type) ? "推荐已更新" : "刷新成功";
                     Toast.makeText(HomeActivity.this, message, Toast.LENGTH_SHORT).show();
                 }
             } else {
@@ -548,7 +548,7 @@ public class HomeActivity extends BaseActivity implements
             public void onUpdate(boolean hasLiked, int newLikeCount) {
                 runOnUiThread(() -> {
                     postAdapter.updateLikeStatus(position, hasLiked, newLikeCount);
-                    dataCache.remove("recommend");
+                    //dataCache.remove("recommend");
                 });
             }
 
