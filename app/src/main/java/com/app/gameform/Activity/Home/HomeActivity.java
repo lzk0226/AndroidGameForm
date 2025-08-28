@@ -23,6 +23,7 @@ import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Post;
 import com.app.gameform.manager.PostLikeManager;
 import com.app.gameform.network.ApiCallback;
+import com.app.gameform.network.ApiConstants;
 import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.BottomNavigationHelper;
 
@@ -39,7 +40,7 @@ public class HomeActivity extends BaseActivity implements
     private RecyclerView recyclerView;
     private PostAdapter postAdapter;
     private List<Post> postList;
-    private TextView tabHot, tabRecommend, tabFollow, tabNew;
+    private TextView tabHot, tabRecommend, tabDiscover, tabNew; // 原来 tabFollow → tabDiscover
     private ImageView iconSearch;
     private BottomNavigationHelper bottomNavigationHelper;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -49,11 +50,11 @@ public class HomeActivity extends BaseActivity implements
     // 懒加载相关变量
     private static final int PAGE_SIZE = 8; // 每页加载8个帖子
     private static final int LOAD_MORE_THRESHOLD = 6; // 浏览到第6个时开始加载
-    private Map<String, Integer> currentPageMap = new HashMap<>(); // 每个标签的当前页码
-    private Map<String, Boolean> hasMoreDataMap = new HashMap<>(); // 每个标签是否还有更多数据
-    private Map<String, Boolean> isLoadingMap = new HashMap<>(); // 每个标签的加载状态
+    private Map<String, Integer> currentPageMap = new HashMap<>();
+    private Map<String, Boolean> hasMoreDataMap = new HashMap<>();
+    private Map<String, Boolean> isLoadingMap = new HashMap<>();
 
-    // 数据缓存 - 缓存每个标签的数据
+    // 数据缓存
     private Map<String, List<Post>> dataCache = new HashMap<>();
 
     @Override
@@ -62,7 +63,6 @@ public class HomeActivity extends BaseActivity implements
         try {
             setContentView(R.layout.home);
 
-            // 设置自定义退出提示信息
             setExitMessage("再按一次退出应用");
 
             initViews();
@@ -74,7 +74,6 @@ public class HomeActivity extends BaseActivity implements
             setupSwipeRefresh();
             setupScrollListener();
 
-            // 默认显示推荐
             switchTab(currentTab);
             loadPostDataWithCache(currentTab, true);
         } catch (Exception e) {
@@ -87,7 +86,7 @@ public class HomeActivity extends BaseActivity implements
         recyclerView = findViewById(R.id.recyclerView);
         tabHot = findViewById(R.id.tab_hot);
         tabRecommend = findViewById(R.id.tab_recommend);
-        tabFollow = findViewById(R.id.tab_follow);
+        tabDiscover = findViewById(R.id.tab_discover); // 对应布局里 id 也要改
         tabNew = findViewById(R.id.tab_new);
         iconSearch = findViewById(R.id.icon_search);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
@@ -96,7 +95,7 @@ public class HomeActivity extends BaseActivity implements
     }
 
     private void initLazyLoadingData() {
-        String[] tabs = {"hot", "recommend", "follow", "new"};
+        String[] tabs = {"hot", "recommend", "discover", "new"}; // follow → discover
         for (String tab : tabs) {
             currentPageMap.put(tab, 1);
             hasMoreDataMap.put(tab, true);
@@ -110,7 +109,6 @@ public class HomeActivity extends BaseActivity implements
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(postAdapter);
 
-        // 设置监听器
         postAdapter.setOnPostClickListener(this);
         postAdapter.setOnPostLikeListener(this);
     }
@@ -121,15 +119,13 @@ public class HomeActivity extends BaseActivity implements
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
 
-                if (dy > 0) { // 向下滑动
+                if (dy > 0) {
                     int visibleItemCount = layoutManager.getChildCount();
                     int totalItemCount = layoutManager.getItemCount();
                     int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
-                    // 计算当前可见的最后一个item的位置
                     int lastVisibleItem = firstVisibleItemPosition + visibleItemCount;
 
-                    // 当浏览到倒数第3个item时开始加载更多(总数-当前可见最后位置<=阈值)
                     if (!isCurrentTabLoading() && hasMoreData(currentTab) &&
                             (totalItemCount - lastVisibleItem) <= (PAGE_SIZE - LOAD_MORE_THRESHOLD)) {
                         loadMorePosts();
@@ -151,7 +147,6 @@ public class HomeActivity extends BaseActivity implements
     }
 
     private void refreshCurrentTab() {
-        // 重置页码和状态
         resetTabData(currentTab);
         loadPostDataWithCache(currentTab, true);
     }
@@ -171,10 +166,10 @@ public class HomeActivity extends BaseActivity implements
             }
         });
 
-        tabFollow.setOnClickListener(v -> {
-            if (!currentTab.equals("follow")) {
-                switchTab("follow");
-                loadPostDataWithCache("follow", true);
+        tabDiscover.setOnClickListener(v -> {
+            if (!currentTab.equals("discover")) {
+                switchTab("discover");
+                loadPostDataWithCache("discover", true);
             }
         });
 
@@ -202,10 +197,7 @@ public class HomeActivity extends BaseActivity implements
     @Override
     public void onHomeDoubleClick() {
         recyclerView.smoothScrollToPosition(0);
-        recyclerView.postDelayed(() -> {
-            refreshCurrentTab();
-            //Toast.makeText(HomeActivity.this, "已刷新", Toast.LENGTH_SHORT).show();
-        }, 200);
+        recyclerView.postDelayed(this::refreshCurrentTab, 200);
     }
 
     private void switchTab(String tab) {
@@ -219,8 +211,8 @@ public class HomeActivity extends BaseActivity implements
             case "recommend":
                 setTabSelected(tabRecommend);
                 break;
-            case "follow":
-                setTabSelected(tabFollow);
+            case "discover": // follow → discover
+                setTabSelected(tabDiscover);
                 break;
             case "new":
                 setTabSelected(tabNew);
@@ -233,8 +225,8 @@ public class HomeActivity extends BaseActivity implements
         tabHot.setTypeface(null, Typeface.NORMAL);
         tabRecommend.setTextColor(Color.parseColor("#999999"));
         tabRecommend.setTypeface(null, Typeface.NORMAL);
-        tabFollow.setTextColor(Color.parseColor("#999999"));
-        tabFollow.setTypeface(null, Typeface.NORMAL);
+        tabDiscover.setTextColor(Color.parseColor("#999999"));
+        tabDiscover.setTypeface(null, Typeface.NORMAL);
         tabNew.setTextColor(Color.parseColor("#999999"));
         tabNew.setTypeface(null, Typeface.NORMAL);
     }
@@ -272,9 +264,8 @@ public class HomeActivity extends BaseActivity implements
         }
     }
 
-    /**
-     * 加载帖子数据
-     */
+    // 在 HomeActivity.java 的 loadPostData 方法中修改推荐部分的代码
+
     private void loadPostData(String type, boolean isRefresh, boolean isLoadMore) {
         if (isCurrentTabLoading()) return;
 
@@ -284,72 +275,161 @@ public class HomeActivity extends BaseActivity implements
             showLoading();
         }
 
-        String url = getApiUrl(type, getCurrentPage(type), PAGE_SIZE);
+        if ("recommend".equals(type)) {
+            int page = getCurrentPage(type);
+            int limit = PAGE_SIZE;
+            int offset = (page - 1) * limit;
 
-        ApiService.getInstance().getPosts(url, new ApiCallback<List<Post>>() {
+            ApiService.getInstance().getHybridRecommendations(this, offset, page, new ApiCallback<List<Post>>() {
+                @Override
+                public void onSuccess(List<Post> posts) {
+                    handlePostsResponse(posts, type, isRefresh, isLoadMore);
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.w("HomeActivity", "混合推荐失败，尝试个性化推荐: " + error);
+                    loadFallbackPersonalizedRecommendations(limit, type, isRefresh, isLoadMore);
+                }
+            });
+        } else {
+            String url = getApiUrl(type, getCurrentPage(type), PAGE_SIZE);
+            ApiService.getInstance().getPosts(url, new ApiCallback<List<Post>>() {
+                @Override
+                public void onSuccess(List<Post> posts) {
+                    handlePostsResponse(posts, type, isRefresh, isLoadMore);
+                }
+
+                @Override
+                public void onError(String error) {
+                    handleApiError(error, type, isRefresh, isLoadMore);
+                }
+            });
+        }
+    }
+
+    /**
+     * 备选个性化推荐（当混合推荐失败时使用）
+     */
+    // 5. 修改备选推荐方法
+    private void loadFallbackPersonalizedRecommendations(int limit, String type, boolean isRefresh, boolean isLoadMore) {
+        ApiService.getInstance().getPersonalizedRecommendations(this, limit, new ApiCallback<List<Post>>() {
             @Override
             public void onSuccess(List<Post> posts) {
-                runOnUiThread(() -> {
-                    setLoading(type, false);
-
-                    if (!isRefresh && !isLoadMore) {
-                        hideLoading();
-                    }
-
-                    if (swipeRefreshLayout.isRefreshing()) {
-                        swipeRefreshLayout.setRefreshing(false);
-                    }
-
-                    // 检查是否还有更多数据
-                    boolean hasMore = posts != null && posts.size() == PAGE_SIZE;
-                    setHasMoreData(type, hasMore);
-
-                    if (posts != null) {
-                        if (isRefresh || (!isLoadMore && getCurrentPage(type) == 1)) {
-                            // 刷新或首次加载：替换所有数据
-                            dataCache.put(type, new ArrayList<>(posts));
-                            updatePostList(posts, false);
-                        } else if (isLoadMore) {
-                            // 加载更多：追加数据
-                            List<Post> cachedData = dataCache.get(type);
-                            if (cachedData == null) {
-                                cachedData = new ArrayList<>();
-                                dataCache.put(type, cachedData);
-                            }
-                            cachedData.addAll(posts);
-                            updatePostList(posts, true);
-                        }
-
-                        if (isRefresh) {
-                            Toast.makeText(HomeActivity.this, "刷新成功", Toast.LENGTH_SHORT).show();
-                        }
-                    } else {
-                        setHasMoreData(type, false);
-                    }
-                });
+                handlePostsResponse(posts, type, isRefresh, isLoadMore);
+                Toast.makeText(HomeActivity.this, "推荐服务已切换到个性化模式", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onError(String error) {
-                runOnUiThread(() -> {
-                    setLoading(type, false);
-
-                    if (!isRefresh && !isLoadMore) {
-                        hideLoading();
-                    }
-
-                    if (swipeRefreshLayout.isRefreshing()) {
-                        swipeRefreshLayout.setRefreshing(false);
-                    }
-
-                    // 加载失败时回退页码
-                    if (isLoadMore && getCurrentPage(type) > 1) {
-                        setCurrentPage(type, getCurrentPage(type) - 1);
-                    }
-
-                    Toast.makeText(HomeActivity.this, "加载失败: " + error, Toast.LENGTH_SHORT).show();
-                });
+                Log.w("HomeActivity", "个性化推荐也失败，降级到热门帖子: " + error);
+                loadFallbackHotPosts(type, isRefresh, isLoadMore);
             }
+        });
+    }
+
+    private void loadFallbackHotPosts(String type, boolean isRefresh, boolean isLoadMore) {
+        String hotUrl = ApiConstants.GET_HOT_POSTS + "?limit=" + PAGE_SIZE;
+        ApiService.getInstance().getPosts(hotUrl, new ApiCallback<List<Post>>() {
+            @Override
+            public void onSuccess(List<Post> posts) {
+                handlePostsResponse(posts, type, isRefresh, isLoadMore);
+                Toast.makeText(HomeActivity.this, "推荐服务暂时不可用，为您显示热门内容", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String error) {
+                handleApiError(error, type, isRefresh, isLoadMore);
+            }
+        });
+    }
+    /**
+     * 处理帖子列表响应
+     */
+    private void handlePostsResponse(List<Post> posts, String type, boolean isRefresh, boolean isLoadMore) {
+        runOnUiThread(() -> {
+            setLoading(type, false);
+
+            if (!isRefresh && !isLoadMore) {
+                hideLoading();
+            }
+
+            if (swipeRefreshLayout.isRefreshing()) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            // 检查是否还有更多数据
+            boolean hasMore = posts != null && posts.size() == PAGE_SIZE;
+
+            // 对于推荐页面，如果返回的帖子数量少于PAGE_SIZE，说明没有更多数据
+            if ("recommend".equals(type)) {
+                hasMore = posts != null && posts.size() >= PAGE_SIZE;
+            }
+
+            setHasMoreData(type, hasMore);
+
+            if (posts != null) {
+                if (isRefresh || (!isLoadMore && getCurrentPage(type) == 1)) {
+                    // 刷新或首次加载：替换所有数据
+                    dataCache.put(type, new ArrayList<>(posts));
+                    updatePostList(posts, false);
+                } else if (isLoadMore) {
+                    // 加载更多：追加数据
+                    List<Post> cachedData = dataCache.get(type);
+                    if (cachedData == null) {
+                        cachedData = new ArrayList<>();
+                        dataCache.put(type, cachedData);
+                    }
+                    // 去重处理，防止重复数据
+                    List<Post> newPosts = new ArrayList<>();
+                    for (Post post : posts) {
+                        boolean isDuplicate = false;
+                        for (Post existingPost : cachedData) {
+                            if (existingPost.getPostId().equals(post.getPostId())) {
+                                isDuplicate = true;
+                                break;
+                            }
+                        }
+                        if (!isDuplicate) {
+                            newPosts.add(post);
+                        }
+                    }
+                    cachedData.addAll(newPosts);
+                    updatePostList(newPosts, true);
+                }
+
+                if (isRefresh) {
+                    String message = "recommend".equals(type) ? "个性化推荐已更新" : "刷新成功";
+                    Toast.makeText(HomeActivity.this, message, Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                setHasMoreData(type, false);
+            }
+        });
+    }
+    /**
+     * 处理API错误
+     */
+    private void handleApiError(String error, String type, boolean isRefresh, boolean isLoadMore) {
+        runOnUiThread(() -> {
+            setLoading(type, false);
+
+            if (!isRefresh && !isLoadMore) {
+                hideLoading();
+            }
+
+            if (swipeRefreshLayout.isRefreshing()) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            // 加载失败时回退页码
+            if (isLoadMore && getCurrentPage(type) > 1) {
+                setCurrentPage(type, getCurrentPage(type) - 1);
+            }
+
+            String errorMessage = "recommend".equals(type) && error.contains("TOKEN_INVALID") ?
+                    "请先登录以获取个性化推荐" : "加载失败: " + error;
+            Toast.makeText(HomeActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -374,6 +454,9 @@ public class HomeActivity extends BaseActivity implements
                 url = baseUrl + "hot";
                 break;
             case "recommend":
+                // 使用混合推荐接口
+                url = ApiConstants.GET_HYBRID_RECOMMENDATIONS; // 需要在ApiConstants中定义
+                break;
             case "follow":
             case "new":
             default:
@@ -383,8 +466,11 @@ public class HomeActivity extends BaseActivity implements
 
         // 添加分页参数
         String separator = url.contains("?") ? "&" : "?";
-        return url + separator + "page=" + page + "&size=" + pageSize;
+
+        // 所有页面都支持分页
+        return url + separator + "limit=" + pageSize + "&page=" + page;
     }
+
 
     // 辅助方法
     private void resetTabData(String tab) {
@@ -460,9 +546,10 @@ public class HomeActivity extends BaseActivity implements
         likeManager.handleLikeClick(post, position, new PostLikeManager.LikeStatusCallback() {
             @Override
             public void onUpdate(boolean hasLiked, int newLikeCount) {
-                runOnUiThread(() ->
-                        postAdapter.updateLikeStatus(position, hasLiked, newLikeCount)
-                );
+                runOnUiThread(() -> {
+                    postAdapter.updateLikeStatus(position, hasLiked, newLikeCount);
+                    dataCache.remove("recommend");
+                });
             }
 
             @Override

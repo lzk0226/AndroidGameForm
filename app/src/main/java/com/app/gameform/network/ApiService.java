@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -577,5 +578,142 @@ public class ApiService {
         public void setData(T data) {
             this.data = data;
         }
+    }
+    // 在 ApiService.java 中添加以下方法
+
+    /**
+     * 获取个性化推荐帖子
+     */
+    public void getPersonalizedRecommendations(Context context, int limit, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.buildPersonalizedRecommendationsUrl(limit);
+
+        getRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<List<Post>> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<List<Post>>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        String errorMsg = apiResponse != null ? apiResponse.getMsg() : "推荐服务异常";
+                        callback.onError(errorMsg);
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析个性化推荐数据失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 获取基于内容的推荐帖子
+     */
+    public void getContentBasedRecommendations(Context context, int limit, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.buildContentBasedRecommendationsUrl(limit);
+
+        getRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<List<Post>> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<List<Post>>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        String errorMsg = apiResponse != null ? apiResponse.getMsg() : "内容推荐服务异常";
+                        callback.onError(errorMsg);
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析内容推荐数据失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 获取混合推荐帖子
+     */
+    public void getHybridRecommendations(Context context, int limit, int page, ApiCallback<List<Post>> callback) {
+        String url = ApiConstants.buildHybridRecommendationsUrl(limit, page);
+
+        getRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<List<Post>> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<List<Post>>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        String errorMsg = apiResponse != null ? apiResponse.getMsg() : "混合推荐服务异常";
+                        callback.onError(errorMsg);
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析混合推荐数据失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 获取详细推荐信息
+     */
+    public void getDetailedRecommendations(Context context, int limit, ApiCallback<Map<String, Object>> callback) {
+        String url = ApiConstants.buildDetailedRecommendationsUrl(limit);
+
+        getRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<Map<String, Object>> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<Map<String, Object>>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        String errorMsg = apiResponse != null ? apiResponse.getMsg() : "详细推荐服务异常";
+                        callback.onError(errorMsg);
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析详细推荐数据失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
     }
 }

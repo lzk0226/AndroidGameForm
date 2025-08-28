@@ -1,8 +1,8 @@
 package com.app.gameform.network;
 
 public class ApiConstants {
-    public static final String BASE_URL = "http://110.41.1.63:8080";
-    //public static final String BASE_URL = "http://10.0.2.2:8080";
+    //public static final String BASE_URL = "http://110.41.1.63:8080";
+    public static final String BASE_URL = "http://10.0.2.2:8080";
     //public static final String BASE_URL = "http://192.168.124.17:8080";
 
     // ================== 现有接口 ==================
@@ -89,6 +89,19 @@ public class ApiConstants {
     // 取消点赞帖子
     public static final String DELETE_POST_LIKE = BASE_URL + "/user/post/like/"; // + postId (DELETE)
 
+    // ================== 新增：个性化推荐接口 ==================
+
+    // 个性化推荐帖子 - 基于协同过滤算法
+    public static final String GET_PERSONALIZED_RECOMMENDATIONS = BASE_URL + "/user/post/recommendations";
+
+    // 基于内容的推荐帖子
+    public static final String GET_CONTENT_BASED_RECOMMENDATIONS = BASE_URL + "/user/post/recommendations/content";
+
+    // 混合推荐帖子（协同过滤 + 基于内容）
+    public static final String GET_HYBRID_RECOMMENDATIONS = BASE_URL + "/user/post/recommendations/hybrid";
+
+    // 获取推荐帖子的详细信息（包含推荐类型和原因）
+    public static final String GET_DETAILED_RECOMMENDATIONS = BASE_URL + "/user/post/recommendations/detailed";
 
     // 获取帖子评论
     public static final String GET_POST_COMMENTS = BASE_URL + "/user/comment/post/"; // + postId
@@ -162,6 +175,34 @@ public class ApiConstants {
      */
     public static String buildHotSectionsUrl(int limit) {
         return GET_HOT_SECTIONS + "?limit=" + limit;
+    }
+
+    /**
+     * 构建个性化推荐URL
+     */
+    public static String buildPersonalizedRecommendationsUrl(int limit) {
+        return GET_PERSONALIZED_RECOMMENDATIONS + "?limit=" + limit;
+    }
+
+    /**
+     * 构建内容推荐URL
+     */
+    public static String buildContentBasedRecommendationsUrl(int limit) {
+        return GET_CONTENT_BASED_RECOMMENDATIONS + "?limit=" + limit;
+    }
+
+    /**
+     * 构建混合推荐URL
+     */
+    public static String buildHybridRecommendationsUrl(int limit, int page) {
+        return BASE_URL + "/user/post/recommendations/hybrid?limit=" + limit + "&page=" + page;
+    }
+
+    /**
+     * 构建详细推荐URL
+     */
+    public static String buildDetailedRecommendationsUrl(int limit) {
+        return GET_DETAILED_RECOMMENDATIONS + "?limit=" + limit;
     }
 
     /**
