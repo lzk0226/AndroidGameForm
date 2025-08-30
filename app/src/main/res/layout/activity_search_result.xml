@@ -23,7 +23,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- 返回按钮 - 修改：给FrameLayout添加ID -->
+        <!-- 返回按钮 -->
         <FrameLayout
             android:id="@+id/btn_back_frame"
             android:layout_width="48dp"
@@ -90,100 +90,107 @@
 
     </LinearLayout>
 
-    <!-- 分类标签栏 - 可滑动 -->
-    <HorizontalScrollView
-        android:id="@+id/tabScrollView"
+    <!-- 标签栏容器 -->
+    <LinearLayout
+        android:id="@+id/tab_container"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:background="@android:color/white"
-        android:scrollbars="none"
-        android:overScrollMode="never"
         app:layout_constraintTop_toBottomOf="@+id/searchLayout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
-            android:id="@+id/tabLayout"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+        <!-- 分类标签栏 - 可滑动 -->
+        <HorizontalScrollView
+            android:id="@+id/tabScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:scrollbars="none"
+            android:overScrollMode="never">
 
-            <TextView
-                android:id="@+id/tab_all"
+            <LinearLayout
+                android:id="@+id/tabLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:minWidth="80dp"
-                android:gravity="center"
-                android:text="全部"
-                android:textColor="#007AFF"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
+                android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp" />
+                android:paddingEnd="16dp">
 
-            <TextView
-                android:id="@+id/tab_posts"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:minWidth="80dp"
-                android:gravity="center"
-                android:text="帖子 (0)"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp" />
+                <TextView
+                    android:id="@+id/tab_all"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:minWidth="80dp"
+                    android:gravity="center"
+                    android:text="全部"
+                    android:textColor="#007AFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
 
-            <TextView
-                android:id="@+id/tab_games"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:minWidth="80dp"
-                android:gravity="center"
-                android:text="游戏 (0)"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp" />
+                <TextView
+                    android:id="@+id/tab_posts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:minWidth="80dp"
+                    android:gravity="center"
+                    android:text="帖子 (0)"
+                    android:textColor="#666666"
+                    android:textSize="14sp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
 
-            <TextView
-                android:id="@+id/tab_boards"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:minWidth="80dp"
-                android:gravity="center"
-                android:text="版块 (0)"
-                android:textColor="#666666"
-                android:textSize="14sp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp" />
+                <TextView
+                    android:id="@+id/tab_games"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:minWidth="80dp"
+                    android:gravity="center"
+                    android:text="游戏 (0)"
+                    android:textColor="#666666"
+                    android:textSize="14sp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tab_boards"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:minWidth="80dp"
+                    android:gravity="center"
+                    android:text="版块 (0)"
+                    android:textColor="#666666"
+                    android:textSize="14sp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
 
-    </HorizontalScrollView>
+            </LinearLayout>
 
-    <!-- 标签下划线指示器 -->
-    <View
-        android:id="@+id/tab_indicator"
-        android:layout_width="0dp"
-        android:layout_height="2dp"
-        android:background="#007AFF"
-        app:layout_constraintTop_toBottomOf="@+id/tabScrollView"
-        app:layout_constraintStart_toStartOf="@+id/tab_all"
-        app:layout_constraintEnd_toEndOf="@+id/tab_all" />
+        </HorizontalScrollView>
+
+        <!-- 标签下划线指示器 -->
+        <View
+            android:id="@+id/tab_indicator"
+            android:layout_width="80dp"
+            android:layout_height="2dp"
+            android:layout_marginStart="32dp"
+            android:background="#007AFF" />
+
+    </LinearLayout>
 
     <!-- 搜索结果统计 -->
     <LinearLayout
@@ -196,7 +203,7 @@
         android:paddingVertical="12dp"
         android:background="@android:color/white"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@+id/tab_indicator"
+        app:layout_constraintTop_toBottomOf="@+id/tab_container"
         tools:visibility="visible">
 
         <TextView

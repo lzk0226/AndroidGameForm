@@ -300,10 +300,32 @@ public class SearchResultActivity extends AppCompatActivity implements
         tabBoards.setTypeface(null, Typeface.NORMAL);
     }
 
+    // 在 SearchResultActivity.java 中替换 updateTabIndicator 方法
+
     private void updateTabIndicator(TextView selectedTab) {
-        if (selectedTab != null) {
+        if (selectedTab != null && tabIndicator != null) {
             selectedTab.post(() -> {
-                // 这里可以添加指示器动画，暂时省略
+                // 获取选中标签的位置信息
+                int[] tabLocation = new int[2];
+                selectedTab.getLocationInWindow(tabLocation);
+
+                // 获取标签容器的位置信息
+                int[] containerLocation = new int[2];
+                findViewById(R.id.tab_container).getLocationInWindow(containerLocation);
+
+                // 计算相对位置
+                int tabLeft = tabLocation[0] - containerLocation[0];
+                int tabWidth = selectedTab.getWidth();
+
+                // 设置指示器的位置和宽度
+                LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) tabIndicator.getLayoutParams();
+                if (params == null) {
+                    params = new LinearLayout.LayoutParams(tabWidth, tabIndicator.getLayoutParams().height);
+                } else {
+                    params.width = tabWidth;
+                }
+                params.leftMargin = tabLeft;
+                tabIndicator.setLayoutParams(params);
             });
         }
     }
