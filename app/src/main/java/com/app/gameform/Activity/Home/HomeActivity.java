@@ -427,9 +427,9 @@ public class HomeActivity extends BaseActivity implements
                 setCurrentPage(type, getCurrentPage(type) - 1);
             }
 
-            String errorMessage = "recommend".equals(type) && error.contains("TOKEN_INVALID") ?
+            /*String errorMessage = "recommend".equals(type) && error.contains("TOKEN_INVALID") ?
                     "请先登录以获取个性化推荐" : "加载失败: " + error;
-            Toast.makeText(HomeActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+            Toast.makeText(HomeActivity.this, errorMessage, Toast.LENGTH_SHORT).show();*/
         });
     }
 

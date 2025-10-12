@@ -11,6 +11,10 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -50,12 +54,13 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * 发帖页面
+ * 发帖页面 - 支持富文本编辑
  */
 public class NewPostActivity extends AppCompatActivity {
 
-    private TextView btnClose, btnPublish, tvSelectedTopic, btnInsertImage;
-    private EditText etContent, etTitle;
+    private TextView btnClose, btnPublish, tvSelectedTopic, btnInsertImage, btnBold, btnItalic;
+    private EditText etTitle;
+    private WebView webViewContent;
     private RecyclerView rvSelectedImages;
 
     private List<Uri> selectedImageUris = new ArrayList<>();
@@ -79,6 +84,10 @@ public class NewPostActivity extends AppCompatActivity {
     // 内容变化标志
     private boolean hasContentChanged = false;
 
+    // 富文本编辑器相关
+    private String currentHtmlContent = "";
+    private List<String> uploadedImageUrls = new ArrayList<>();
+
     // 优化 OkHttpClient 配置
     private OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -96,6 +105,7 @@ public class NewPostActivity extends AppCompatActivity {
 
         initViews();
         initImagePicker();
+        initRichTextEditor();
         initEvents();
         initDraftManager();
         initImageUploadHelper();
@@ -103,32 +113,184 @@ public class NewPostActivity extends AppCompatActivity {
         loadTopicData();
     }
 
-
-    // 在 initViews() 方法中的修改
     private void initViews() {
         btnClose = findViewById(R.id.btn_close);
         btnPublish = findViewById(R.id.btn_publish);
         tvSelectedTopic = findViewById(R.id.tv_selected_topic);
         btnInsertImage = findViewById(R.id.btn_insert_image);
-        etContent = findViewById(R.id.et_content);
         etTitle = findViewById(R.id.et_title);
         rvSelectedImages = findViewById(R.id.rv_selected_images);
 
+        // 初始化富文本编辑器
+        webViewContent = findViewById(R.id.web_view_content);
+
+        // 初始化格式按钮
+        btnBold = findViewById(R.id.btn_bold);
+        btnItalic = findViewById(R.id.btn_italic);
+
+        // 图片预览RecyclerView（可选功能）
         rvSelectedImages.setLayoutManager(new GridLayoutManager(this, 3));
         imageAdapter = new ImageAdapter(selectedImageUris);
-
-        // 设置删除监听器
         imageAdapter.setOnImageDeleteListener(position -> {
-            // 图片被删除时的回调
-            hasContentChanged = true; // 标记内容已变化
-
-            // 如果没有图片了，隐藏RecyclerView
+            hasContentChanged = true;
             if (selectedImageUris.isEmpty()) {
                 rvSelectedImages.setVisibility(View.GONE);
             }
         });
-
         rvSelectedImages.setAdapter(imageAdapter);
+    }
+
+    /**
+     * 初始化富文本编辑器
+     */
+    private void initRichTextEditor() {
+        WebSettings webSettings = webViewContent.getSettings();
+
+        // 启用JavaScript
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setAllowFileAccess(true);
+        webSettings.setAllowContentAccess(true);
+
+        // 设置自适应屏幕
+        webSettings.setUseWideViewPort(true);
+        webSettings.setLoadWithOverviewMode(true);
+
+        // 添加JavaScript接口
+        webViewContent.addJavascriptInterface(new WebAppInterface(), "Android");
+
+        // 加载富文本编辑器HTML
+        String editorHtml = createRichTextEditorHtml();
+        webViewContent.loadDataWithBaseURL("file:///android_asset/", editorHtml, "text/html", "UTF-8", null);
+
+        // 设置内容变化监听
+        webViewContent.setWebChromeClient(new WebChromeClient());
+    }
+
+    /**
+     * 创建富文本编辑器HTML
+     */
+    private String createRichTextEditorHtml() {
+        return "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "    <meta charset=\"UTF-8\">\n" +
+                "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                "    <style>\n" +
+                "        body {\n" +
+                "            margin: 0;\n" +
+                "            padding: 12px;\n" +
+                "            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n" +
+                "            font-size: 16px;\n" +
+                "            line-height: 1.6;\n" +
+                "            color: #333333;\n" +
+                "            min-height: 300px;\n" +
+                "        }\n" +
+                "        #editor {\n" +
+                "            min-height: 300px;\n" +
+                "            outline: none;\n" +
+                "            border: none;\n" +
+                "        }\n" +
+                "        .placeholder {\n" +
+                "            color: #999999;\n" +
+                "        }\n" +
+                "        img {\n" +
+                "            max-width: 100%;\n" +
+                "            height: auto;\n" +
+                "            margin: 8px 0;\n" +
+                "        }\n" +
+                "    </style>\n" +
+                "</head>\n" +
+                "<body>\n" +
+                "    <div id=\"editor\" contenteditable=\"true\" class=\"placeholder\" data-placeholder=\"请输入内容...\"></div>\n" +
+                "    \n" +
+                "    <script>\n" +
+                "        const editor = document.getElementById('editor');\n" +
+                "        \n" +
+                "        // 处理占位符\n" +
+                "        editor.addEventListener('focus', function() {\n" +
+                "            if (this.classList.contains('placeholder')) {\n" +
+                "                this.innerHTML = '';\n" +
+                "                this.classList.remove('placeholder');\n" +
+                "            }\n" +
+                "        });\n" +
+                "        \n" +
+                "        editor.addEventListener('blur', function() {\n" +
+                "            if (this.innerHTML === '') {\n" +
+                "                this.classList.add('placeholder');\n" +
+                "                this.innerHTML = '请输入内容...';\n" +
+                "            }\n" +
+                "        });\n" +
+                "        \n" +
+                "        // 内容变化时通知Android\n" +
+                "        editor.addEventListener('input', function() {\n" +
+                "            Android.onContentChanged(this.innerHTML);\n" +
+                "        });\n" +
+                "        \n" +
+                "        // 插入图片\n" +
+                "        function insertImage(imageUrl) {\n" +
+                "            const img = document.createElement('img');\n" +
+                "            img.src = imageUrl;\n" +
+                "            img.style.maxWidth = '100%';\n" +
+                "            \n" +
+                "            // 在光标位置插入图片\n" +
+                "            const selection = window.getSelection();\n" +
+                "            if (selection.rangeCount > 0) {\n" +
+                "                const range = selection.getRangeAt(0);\n" +
+                "                range.insertNode(img);\n" +
+                "                \n" +
+                "                // 在图片后添加换行\n" +
+                "                const br = document.createElement('br');\n" +
+                "                range.insertNode(br);\n" +
+                "                \n" +
+                "                // 将光标移动到换行后\n" +
+                "                range.setStartAfter(br);\n" +
+                "                range.setEndAfter(br);\n" +
+                "                selection.removeAllRanges();\n" +
+                "                selection.addRange(range);\n" +
+                "            } else {\n" +
+                "                editor.appendChild(img);\n" +
+                "                editor.appendChild(document.createElement('br'));\n" +
+                "            }\n" +
+                "            \n" +
+                "            Android.onContentChanged(editor.innerHTML);\n" +
+                "        }\n" +
+                "        \n" +
+                "        // 格式化文本\n" +
+                "        function formatText(tag) {\n" +
+                "            document.execCommand(tag, false, null);\n" +
+                "            Android.onContentChanged(editor.innerHTML);\n" +
+                "        }\n" +
+                "        \n" +
+                "        // 获取内容\n" +
+                "        function getContent() {\n" +
+                "            return editor.innerHTML;\n" +
+                "        }\n" +
+                "        \n" +
+                "        // 设置内容\n" +
+                "        function setContent(html) {\n" +
+                "            if (html && html !== '请输入内容...') {\n" +
+                "                editor.innerHTML = html;\n" +
+                "                editor.classList.remove('placeholder');\n" +
+                "            }\n" +
+                "        }\n" +
+                "    </script>\n" +
+                "</body>\n" +
+                "</html>";
+    }
+
+    /**
+     * WebView与Android的通信接口
+     */
+    private class WebAppInterface {
+        @JavascriptInterface
+        public void onContentChanged(String html) {
+            runOnUiThread(() -> {
+                currentHtmlContent = html;
+                hasContentChanged = true;
+                updatePublishButton();
+            });
+        }
     }
 
     private void initImagePicker() {
@@ -136,10 +298,13 @@ public class NewPostActivity extends AppCompatActivity {
                 new ActivityResultContracts.GetContent(),
                 uri -> {
                     if (uri != null) {
+                        // 将图片添加到预览列表（可选）
                         selectedImageUris.add(uri);
                         rvSelectedImages.setVisibility(View.VISIBLE);
                         imageAdapter.notifyDataSetChanged();
-                        hasContentChanged = true;
+
+                        // 上传图片并插入到富文本编辑器
+                        uploadAndInsertImage(uri);
                     }
                 }
         );
@@ -148,16 +313,28 @@ public class NewPostActivity extends AppCompatActivity {
     private void initEvents() {
         btnClose.setOnClickListener(v -> onBackPressed());
 
-        btnInsertImage.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        // 插入图片
+        btnInsertImage.setOnClickListener(v -> {
+            pickImageLauncher.launch("image/*");
+        });
+
+        // 粗体按钮
+        btnBold.setOnClickListener(v -> {
+            webViewContent.evaluateJavascript("formatText('bold');", null);
+        });
+
+        // 斜体按钮
+        btnItalic.setOnClickListener(v -> {
+            webViewContent.evaluateJavascript("formatText('italic');", null);
+        });
 
         // 话题选择点击事件
         findViewById(R.id.layout_topic_selector).setOnClickListener(v -> showTopicSelector());
 
-        // 输入监听，控制发布按钮是否可点击
-        TextWatcher contentWatcher = new TextWatcher() {
+        // 标题输入监听
+        etTitle.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -166,12 +343,8 @@ public class NewPostActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {
-            }
-        };
-
-        etContent.addTextChangedListener(contentWatcher);
-        etTitle.addTextChangedListener(contentWatcher);
+            public void afterTextChanged(Editable s) {}
+        });
 
         btnPublish.setOnClickListener(v -> publishPost());
     }
@@ -213,21 +386,25 @@ public class NewPostActivity extends AppCompatActivity {
         if (draft != null) {
             Log.d("LoadDraft", "加载草稿: " + draft.toString());
 
-            // 设置标题和内容
+            // 设置标题
             if (!TextUtils.isEmpty(draft.getDraftTitle())) {
                 etTitle.setText(draft.getDraftTitle());
             }
+
+            // 设置富文本内容
             if (!TextUtils.isEmpty(draft.getDraftContent())) {
-                etContent.setText(draft.getDraftContent());
+                currentHtmlContent = draft.getDraftContent();
+                String jsCode = String.format("setContent('%s');",
+                        draft.getDraftContent().replace("'", "\\'"));
+                webViewContent.evaluateJavascript(jsCode, null);
             }
 
-            // 设置选中的版块 - 等待数据加载完成后设置
+            // 设置选中的版块
             if (draft.getSectionId() != null) {
-                // 延迟设置选中的版块，等待数据加载完成
                 setSelectedSectionFromDraft(draft);
             }
 
-            hasContentChanged = false; // 加载草稿时不算内容变化
+            hasContentChanged = false;
             updatePublishButton();
         }
     }
@@ -298,9 +475,12 @@ public class NewPostActivity extends AppCompatActivity {
      * 更新发布按钮状态
      */
     private void updatePublishButton() {
-        boolean hasContent = etTitle.getText().length() > 0 || etContent.getText().length() > 0;
+        boolean hasTitle = etTitle.getText().length() > 0;
+        boolean hasContent = !currentHtmlContent.isEmpty() &&
+                !currentHtmlContent.equals("请输入内容...") &&
+                !currentHtmlContent.contains("placeholder");
         boolean hasSection = selectedSection != null;
-        btnPublish.setEnabled(hasContent && hasSection);
+        btnPublish.setEnabled(hasTitle && hasContent && hasSection);
     }
 
     /**
@@ -352,13 +532,12 @@ public class NewPostActivity extends AppCompatActivity {
      */
     private boolean checkAndSaveDraft() {
         String title = etTitle.getText().toString().trim();
-        String content = etContent.getText().toString().trim();
 
         // 草稿保存时不考虑图片，只保存文本内容
-        boolean hasContent = draftManager.hasContentToSave(title, content) || selectedSection != null;
+        boolean hasContent = draftManager.hasContentToSave(title, currentHtmlContent) || selectedSection != null;
 
         if (hasContent && hasContentChanged) {
-            showSaveDraftDialog(title, content);
+            showSaveDraftDialog(title, currentHtmlContent);
             return true; // 拦截返回
         }
         return false; // 不拦截
@@ -399,6 +578,11 @@ public class NewPostActivity extends AppCompatActivity {
             // 处理标题
             if (TextUtils.isEmpty(title)) {
                 title = draftManager.generateDefaultDraftTitle();
+            }
+
+            // 处理内容（使用富文本内容）
+            if (TextUtils.isEmpty(content) || content.equals("请输入内容...")) {
+                content = "";
             }
 
             // 处理话题信息
@@ -675,20 +859,69 @@ public class NewPostActivity extends AppCompatActivity {
     }
 
     /**
+     * 上传图片并插入到富文本编辑器
+     */
+    private void uploadAndInsertImage(Uri imageUri) {
+        String token = getValidToken();
+        if (token == null) {
+            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 显示上传状态
+        Toast.makeText(this, "正在上传图片...", Toast.LENGTH_SHORT).show();
+
+        imageUploadHelper.uploadImage(imageUri, token, new ImageUploadHelper.ImageUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                runOnUiThread(() -> {
+                    // 将图片URL添加到已上传列表
+                    uploadedImageUrls.add(imageUrl);
+
+                    // 在富文本编辑器中插入图片
+                    String jsCode = String.format("insertImage('%s');", imageUrl);
+                    webViewContent.evaluateJavascript(jsCode, null);
+
+                    Toast.makeText(NewPostActivity.this, "图片上传成功", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onFailure(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(NewPostActivity.this, "图片上传失败: " + error, Toast.LENGTH_SHORT).show();
+                    // 从预览列表中移除失败的图片
+                    if (!selectedImageUris.isEmpty()) {
+                        selectedImageUris.remove(selectedImageUris.size() - 1);
+                        imageAdapter.notifyDataSetChanged();
+                        if (selectedImageUris.isEmpty()) {
+                            rvSelectedImages.setVisibility(View.GONE);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * 发布帖子
      */
     private void publishPost() {
         String title = etTitle.getText().toString().trim();
-        String content = etContent.getText().toString().trim();
+        String content = currentHtmlContent;
 
         if (title.isEmpty()) {
             Toast.makeText(this, "请输入标题", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (content.isEmpty()) {
+
+        // 检查内容是否为空（去除HTML标签后）
+        String plainText = android.text.Html.fromHtml(content).toString().trim();
+        if (plainText.isEmpty() || plainText.equals("请输入内容...")) {
             Toast.makeText(this, "请输入内容", Toast.LENGTH_SHORT).show();
             return;
         }
+
         if (selectedSection == null) {
             Toast.makeText(this, "请选择话题", Toast.LENGTH_SHORT).show();
             return;
@@ -700,23 +933,23 @@ public class NewPostActivity extends AppCompatActivity {
             return;
         }
 
-        // 如果有图片，先上传图片
-        if (!selectedImageUris.isEmpty()) {
-            uploadImagesAndPublish(title, content, token);
-        } else {
-            publishPostWithJson(title, content, "", token);
-        }
+        // 直接发布，图片已经在内容中
+        publishPostWithRichText(title, content, token);
     }
 
-    private void publishPostWithJson(String title, String content, String photoUrl, String token) {
+    /**
+     * 发布富文本帖子
+     */
+    private void publishPostWithRichText(String title, String content, String token) {
         try {
-            // 构造 JSON 请求体
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("postTitle", title);
             jsonBody.put("postContent", content);
             jsonBody.put("sectionId", selectedSection.getSectionId());
-            if (!photoUrl.isEmpty()) {
-                jsonBody.put("photo", photoUrl);
+
+            // 如果有图片，设置第一张图片作为封面（可选）
+            if (!uploadedImageUrls.isEmpty()) {
+                jsonBody.put("photo", uploadedImageUrls.get(0));
             }
 
             RequestBody requestBody = RequestBody.create(
@@ -736,13 +969,11 @@ public class NewPostActivity extends AppCompatActivity {
             btnPublish.setText("发布中...");
 
             Log.d("发帖请求", "URL: " + ApiConstants.USER_POST);
-            Log.d("发帖请求", "Token: " + token.substring(0, Math.min(token.length(), 50)) + "...");
             Log.d("发帖请求", "请求体: " + jsonBody.toString());
 
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    Log.e("发帖失败", "网络错误: " + e.getMessage());
                     runOnUiThread(() -> {
                         btnPublish.setEnabled(true);
                         btnPublish.setText("发布");
@@ -775,12 +1006,8 @@ public class NewPostActivity extends AppCompatActivity {
                                 } else {
                                     String errorMsg = json.optString("msg", "发布失败");
                                     Toast.makeText(NewPostActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
-                                    if (response.code() == 401) {
-                                        Toast.makeText(NewPostActivity.this, "登录已过期，请重新登录", Toast.LENGTH_SHORT).show();
-                                    }
                                 }
                             } catch (Exception e) {
-                                Log.e("解析响应", "错误: " + e.getMessage());
                                 Toast.makeText(NewPostActivity.this, "解析错误", Toast.LENGTH_SHORT).show();
                             }
                         } else {
@@ -799,47 +1026,6 @@ public class NewPostActivity extends AppCompatActivity {
     }
 
     /**
-     * 先上传图片再发布帖子
-     */
-    private void uploadImagesAndPublish(String title, String content, String token) {
-        if (selectedImageUris.isEmpty()) {
-            publishPostWithJson(title, content, "", token);
-            return;
-        }
-
-        // 只上传第一张图片（根据你的网页版逻辑）
-        Uri imageUri = selectedImageUris.get(0);
-
-        // 禁用发布按钮，显示上传中状态
-        btnPublish.setEnabled(false);
-        btnPublish.setText("上传图片中...");
-
-        Log.d("图片上传", "开始上传图片: " + imageUri);
-
-        // 使用ImageUploadHelper上传图片
-        imageUploadHelper.uploadImage(imageUri, token, new ImageUploadHelper.ImageUploadCallback() {
-            @Override
-            public void onSuccess(String imageUrl) {
-                runOnUiThread(() -> {
-                    Log.d("图片上传", "上传成功，图片URL: " + imageUrl);
-                    btnPublish.setText("发布中...");
-                    publishPostWithJson(title, content, imageUrl, token);
-                });
-            }
-
-            @Override
-            public void onFailure(String error) {
-                runOnUiThread(() -> {
-                    Log.e("图片上传", "上传失败: " + error);
-                    Toast.makeText(NewPostActivity.this, "图片上传失败: " + error, Toast.LENGTH_SHORT).show();
-                    btnPublish.setEnabled(true);
-                    btnPublish.setText("发布");
-                });
-            }
-        });
-    }
-
-    /**
      * 启动编辑草稿的静态方法
      */
     public static void startForEditDraft(Context context, int draftId) {
@@ -851,6 +1037,10 @@ public class NewPostActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // 清理WebView资源
+        if (webViewContent != null) {
+            webViewContent.destroy();
+        }
         // 销毁图片上传工具类的资源
         if (imageUploadHelper != null) {
             imageUploadHelper.destroy();

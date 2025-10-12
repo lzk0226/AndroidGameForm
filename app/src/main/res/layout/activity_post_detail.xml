@@ -109,26 +109,13 @@
                 android:textStyle="bold"
                 android:layout_marginTop="16dp" />
 
-            <!-- 内容 -->
-            <TextView
-                android:id="@+id/tv_post_content"
+            <!-- 富文本内容区域 -->
+            <WebView
+                android:id="@+id/web_view_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="这是一条很有趣的帖子内容，支持长文本、多段换行展示..."
-                android:textSize="16sp"
-                android:textColor="#333333"
-                android:lineSpacingMultiplier="1.3"
-                android:layout_marginTop="8dp" />
-
-            <!-- 图片展示 -->
-            <ImageView
-                android:id="@+id/iv_post_image"
-                android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:layout_marginTop="12dp"
-                android:scaleType="centerCrop"
-                android:background="#E0E0E0"
-                android:visibility="gone" />
+                android:layout_marginTop="8dp"
+                android:background="@android:color/transparent" />
 
             <!-- 点赞评论分享 -->
             <LinearLayout

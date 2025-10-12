@@ -10,6 +10,9 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -53,7 +56,9 @@ public class PostDetailActivity extends AppCompatActivity {
     private static final String TAG = "PostDetailActivity";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    private TextView tvContent, tvLikeCount, tvCommentCount, tvShareCount, tvPostTitle, tvUserName, tvTime;
+    //private TextView tvContent, tvLikeCount, tvCommentCount, tvShareCount, tvPostTitle, tvUserName, tvTime;
+    private TextView tvLikeCount, tvCommentCount, tvShareCount, tvPostTitle, tvUserName, tvTime;
+    private WebView webViewContent;
     private ImageView ivImage, ivLike, ivComment, ivShare, ivSend;
     private CircleImageView ivUserAvatar;
     private EditText etCommentInput;
@@ -97,8 +102,10 @@ public class PostDetailActivity extends AppCompatActivity {
         tvUserName = findViewById(R.id.tv_user_name);
         tvTime = findViewById(R.id.tv_time);
         tvPostTitle = findViewById(R.id.tv_post_title);
-        tvContent = findViewById(R.id.tv_post_content);
-        ivImage = findViewById(R.id.iv_post_image);
+        //tvContent = findViewById(R.id.tv_post_content);
+        //ivImage = findViewById(R.id.iv_post_image);
+        webViewContent = findViewById(R.id.web_view_content);
+        setupWebView();
         ImageView ivBack = findViewById(R.id.iv_back);
 
         ivLike = findViewById(R.id.iv_like_icon);
@@ -110,6 +117,37 @@ public class PostDetailActivity extends AppCompatActivity {
         ivSend = findViewById(R.id.iv_send_comment);
 
         layoutCommentsContainer = findViewById(R.id.layout_comments_container);
+    }
+
+    /**
+     * 设置WebView配置
+     */
+    private void setupWebView() {
+        WebSettings webSettings = webViewContent.getSettings();
+
+        // 启用JavaScript（如果需要）
+        webSettings.setJavaScriptEnabled(true);
+
+        // 设置自适应屏幕
+        webSettings.setUseWideViewPort(true);
+        webSettings.setLoadWithOverviewMode(true);
+        webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
+
+        // 支持缩放
+        webSettings.setSupportZoom(false);
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setDisplayZoomControls(false);
+
+        // 其他设置
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setAllowFileAccess(true);
+        webSettings.setAllowContentAccess(true);
+
+        // 设置透明背景
+        webViewContent.setBackgroundColor(0x00000000);
+
+        // 设置WebChromeClient来处理进度等
+        webViewContent.setWebChromeClient(new WebChromeClient());
     }
 
     private boolean initializeData() {
@@ -290,9 +328,21 @@ public class PostDetailActivity extends AppCompatActivity {
                 tvPostTitle.setText(currentPost.getPostTitle() != null ? currentPost.getPostTitle() : "");
             }
 
-            if (tvContent != null) {
+            /*if (tvContent != null) {
                 String content = currentPost.getPostContent() != null ? currentPost.getPostContent() : "";
                 tvContent.setText(HtmlUtils.removeHtmlTags(content));
+            }*/
+
+            // 使用WebView显示富文本内容
+            if (webViewContent != null && currentPost.getPostContent() != null) {
+                String htmlContent = processHtmlContent(currentPost.getPostContent());
+                webViewContent.loadDataWithBaseURL(
+                        null,
+                        htmlContent,
+                        "text/html",
+                        "UTF-8",
+                        null
+                );
             }
 
             if (tvUserName != null) {
@@ -330,6 +380,75 @@ public class PostDetailActivity extends AppCompatActivity {
             Log.e(TAG, "updatePostUI error: ", e);
             showToast("更新界面失败");
         }
+    }
+
+    /**
+     * 处理HTML内容，添加CSS样式使其适配移动端
+     */
+    private String processHtmlContent(String rawHtml) {
+        if (TextUtils.isEmpty(rawHtml)) {
+            return "";
+        }
+
+        // 创建适配移动端的CSS样式
+        String cssStyle = "<style>" +
+                "body { " +
+                "   margin: 0; " +
+                "   padding: 0; " +
+                "   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; " +
+                "   font-size: 16px; " +
+                "   line-height: 1.6; " +
+                "   color: #333333; " +
+                "   word-wrap: break-word; " +
+                "} " +
+                "img { " +
+                "   max-width: 100% !important; " +
+                "   height: auto !important; " +
+                "   display: block; " +
+                "   margin: 8px auto; " +
+                "} " +
+                "video { " +
+                "   max-width: 100% !important; " +
+                "   height: auto !important; " +
+                "} " +
+                "iframe { " +
+                "   max-width: 100% !important; " +
+                "} " +
+                "table { " +
+                "   max-width: 100% !important; " +
+                "   border-collapse: collapse; " +
+                "} " +
+                "pre { " +
+                "   background: #f5f5f5; " +
+                "   padding: 12px; " +
+                "   border-radius: 4px; " +
+                "   overflow-x: auto; " +
+                "} " +
+                "code { " +
+                "   background: #f5f5f5; " +
+                "   padding: 2px 4px; " +
+                "   border-radius: 2px; " +
+                "} " +
+                "blockquote { " +
+                "   border-left: 4px solid #ddd; " +
+                "   margin: 8px 0; " +
+                "   padding-left: 12px; " +
+                "   color: #666; " +
+                "} " +
+                "</style>";
+
+        // 包装HTML内容
+        return "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "   <meta charset=\"UTF-8\">\n" +
+                "   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n" +
+                cssStyle +
+                "</head>\n" +
+                "<body>\n" +
+                rawHtml +
+                "</body>\n" +
+                "</html>";
     }
 
     private void loadCommentsList() {
