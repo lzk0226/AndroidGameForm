@@ -1,7 +1,6 @@
 package com.app.gameform.Activity.Home;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -9,14 +8,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-
 import com.app.gameform.Activity.EditProfileActivity;
 import com.app.gameform.Activity.LoginActivity;
 import com.app.gameform.R;
 import com.app.gameform.domain.User;
+import com.app.gameform.manager.SharedPrefManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.UserApiService;
 import com.app.gameform.utils.BottomNavigationHelper;
@@ -29,7 +26,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ProfileActivity extends BaseActivity {
     private BottomNavigationHelper bottomNavigationHelper;
-    private SharedPreferences sharedPreferences;
+    private SharedPrefManager sharedPrefManager;  // ⭐ 改用 SharedPrefManager
     private UserApiService userApiService;
 
     // UI组件
@@ -46,12 +43,13 @@ public class ProfileActivity extends BaseActivity {
     private ImageView ivEdit;
     private CircleImageView ivAvatar;
 
-    // 常量
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_TOKEN = "token";
-    private static final String KEY_REFRESH_TOKEN = "refresh_token";
-    private static final String KEY_USER_ID = "user_id";
-    private static final String KEY_USERNAME = "username";
+    // ⭐ 删除这些常量，现在由 SharedPrefManager 管理
+    // private static final String PREFS_NAME = "UserPrefs";
+    // private static final String KEY_TOKEN = "token";
+    // private static final String KEY_REFRESH_TOKEN = "refresh_token";
+    // private static final String KEY_USER_ID = "user_id";
+    // private static final String KEY_USERNAME = "username";
+
     private static final int REQUEST_CODE_EDIT_PROFILE = 1001;
 
     @Override
@@ -97,7 +95,8 @@ public class ProfileActivity extends BaseActivity {
      * 初始化服务
      */
     private void initServices() {
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        // ⭐ 改用 SharedPrefManager
+        sharedPrefManager = SharedPrefManager.getInstance(this);
         userApiService = UserApiService.getInstance();
     }
 
@@ -113,7 +112,8 @@ public class ProfileActivity extends BaseActivity {
      * 检查登录状态
      */
     private void checkLoginStatus() {
-        String token = sharedPreferences.getString(KEY_TOKEN, "");
+        // ⭐ 使用 SharedPrefManager 获取 token
+        String token = sharedPrefManager.getToken();
 
         if (TextUtils.isEmpty(token)) {
             // 未登录状态
@@ -144,9 +144,10 @@ public class ProfileActivity extends BaseActivity {
      * 加载用户信息
      */
     private void loadUserInfo() {
-        long userId = sharedPreferences.getLong(KEY_USER_ID, 0);
-        String username = sharedPreferences.getString(KEY_USERNAME, "");
-        String token = sharedPreferences.getString(KEY_TOKEN, "");
+        // ⭐ 使用 SharedPrefManager 获取数据
+        long userId = sharedPrefManager.getUserId();
+        String username = sharedPrefManager.getUsername();
+        String token = sharedPrefManager.getToken();
 
         if (userId == 0) {
             // 用户ID无效，显示登录提示
@@ -268,12 +269,8 @@ public class ProfileActivity extends BaseActivity {
      * 清除用户数据
      */
     private void clearUserData() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove(KEY_TOKEN);
-        editor.remove(KEY_REFRESH_TOKEN);
-        editor.remove(KEY_USER_ID);
-        editor.remove(KEY_USERNAME);
-        editor.apply();
+        // ⭐ 使用 SharedPrefManager 清除数据
+        sharedPrefManager.clearUserData();
     }
 
     @Override
