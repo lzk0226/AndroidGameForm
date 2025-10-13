@@ -15,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.app.gameform.Activity.Home.ProfileActivity;
 import com.app.gameform.R;
 import com.app.gameform.manager.UserManager;
-import com.app.gameform.utils.SharedPrefManager;
+import com.app.gameform.manager.SharedPrefManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 /**

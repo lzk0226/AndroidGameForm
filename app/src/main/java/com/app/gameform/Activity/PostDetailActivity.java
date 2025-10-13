@@ -31,7 +31,7 @@ import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.HtmlUtils;
 import com.app.gameform.utils.ImageUtils;
-import com.app.gameform.utils.SharedPrefManager;
+import com.app.gameform.manager.SharedPrefManager;
 import com.app.gameform.utils.TimeUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

@@ -5,7 +5,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.app.gameform.domain.Post;
-import com.app.gameform.utils.SharedPrefManager;
+import com.app.gameform.manager.SharedPrefManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;

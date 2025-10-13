@@ -22,9 +22,7 @@ import com.app.gameform.domain.Game;
 import com.app.gameform.domain.Section;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.utils.ImageUtils;
-import com.app.gameform.utils.SharedPrefManager;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.app.gameform.manager.SharedPrefManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,7 +30,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -196,19 +193,6 @@ public class GameDetailActivity extends AppCompatActivity {
                     if (json.optInt("code") == 200) {
                         JSONObject gameData = json.optJSONObject("data");
                         if (gameData != null) {
-                            // 添加详细的字段日志
-                            /*Log.d(TAG, "=== 游戏数据详细信息 ===");
-                            Log.d(TAG, "gameId: " + gameData.optInt("gameId"));
-                            Log.d(TAG, "gameName: " + gameData.optString("gameName"));
-                            Log.d(TAG, "gameDescription: " + gameData.optString("gameDescription"));
-                            Log.d(TAG, "gameIcon: " + gameData.optString("gameIcon"));
-                            Log.d(TAG, "gameImages: " + gameData.optString("gameImages"));
-                            Log.d(TAG, "gameImageList字段: " + gameData.optString("gameImageList"));
-                            Log.d(TAG, "game_images字段: " + gameData.optString("game_images"));
-                            Log.d(TAG, "images字段: " + gameData.optString("images"));
-
-                            // 打印所有字段名
-                            Log.d(TAG, "所有可用字段:");*/
                             Iterator<String> keys = gameData.keys();
                             while (keys.hasNext()) {
                                 String key = keys.next();

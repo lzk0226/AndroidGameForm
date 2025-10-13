@@ -35,7 +35,7 @@ import com.app.gameform.domain.Section;
 import com.app.gameform.manager.DraftManager;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.utils.ImageUploadHelper;
-import com.app.gameform.utils.SharedPrefManager;
+import com.app.gameform.manager.SharedPrefManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
