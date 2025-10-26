@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.cardview.widget.CardView;
 import com.app.gameform.Activity.EditProfileActivity;
 import com.app.gameform.Activity.LoginActivity;
+import com.app.gameform.Activity.UserListActivity;
 import com.app.gameform.R;
 import com.app.gameform.domain.User;
 import com.app.gameform.manager.SharedPrefManager;
@@ -26,7 +27,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ProfileActivity extends BaseActivity {
     private BottomNavigationHelper bottomNavigationHelper;
-    private SharedPrefManager sharedPrefManager;  // ⭐ 改用 SharedPrefManager
+    private SharedPrefManager sharedPrefManager;
     private UserApiService userApiService;
 
     // UI组件
@@ -43,12 +44,15 @@ public class ProfileActivity extends BaseActivity {
     private ImageView ivEdit;
     private CircleImageView ivAvatar;
 
-    // ⭐ 删除这些常量，现在由 SharedPrefManager 管理
-    // private static final String PREFS_NAME = "UserPrefs";
-    // private static final String KEY_TOKEN = "token";
-    // private static final String KEY_REFRESH_TOKEN = "refresh_token";
-    // private static final String KEY_USER_ID = "user_id";
-    // private static final String KEY_USERNAME = "username";
+    // 新增：统计数据UI组件
+    private CardView cvMyPosts;
+    private CardView cvMyFollowing;
+    private CardView cvMyFollowers;
+    private CardView cvMyFavorites;
+    private TextView tvPostsCount;
+    private TextView tvFollowingCount;
+    private TextView tvFollowersCount;
+    private TextView tvFavoritesCount;
 
     private static final int REQUEST_CODE_EDIT_PROFILE = 1001;
 
@@ -80,6 +84,16 @@ public class ProfileActivity extends BaseActivity {
         ivEdit = findViewById(R.id.ivEdit);
         ivAvatar = findViewById(R.id.ivAvatar);
 
+        // 新增：初始化统计卡片
+        cvMyPosts = findViewById(R.id.cvMyPosts);
+        cvMyFollowing = findViewById(R.id.cvMyFollowing);
+        cvMyFollowers = findViewById(R.id.cvMyFollowers);
+        cvMyFavorites = findViewById(R.id.cvMyFavorites);
+        tvPostsCount = findViewById(R.id.tvPostsCount);
+        tvFollowingCount = findViewById(R.id.tvFollowingCount);
+        tvFollowersCount = findViewById(R.id.tvFollowersCount);
+        tvFavoritesCount = findViewById(R.id.tvFavoritesCount);
+
         // 设置登录提示点击事件
         loginPromptLayout.setOnClickListener(v -> navigateToLogin());
 
@@ -89,13 +103,22 @@ public class ProfileActivity extends BaseActivity {
         // 设置编辑按钮点击事件
         cvEditProfile.setOnClickListener(v -> navigateToEditProfile());
         ivEdit.setOnClickListener(v -> navigateToEditProfile());
+
+        // 新增：设置统计卡片点击事件
+        cvMyPosts.setOnClickListener(v ->
+                Toast.makeText(this, "我的帖子功能开发中", Toast.LENGTH_SHORT).show()
+        );
+        cvMyFollowing.setOnClickListener(v -> navigateToUserList(UserListActivity.TYPE_FOLLOWING));
+        cvMyFollowers.setOnClickListener(v -> navigateToUserList(UserListActivity.TYPE_FOLLOWERS));
+        cvMyFavorites.setOnClickListener(v ->
+                Toast.makeText(this, "收藏列表功能开发中", Toast.LENGTH_SHORT).show()
+        );
     }
 
     /**
      * 初始化服务
      */
     private void initServices() {
-        // ⭐ 改用 SharedPrefManager
         sharedPrefManager = SharedPrefManager.getInstance(this);
         userApiService = UserApiService.getInstance();
     }
@@ -112,7 +135,6 @@ public class ProfileActivity extends BaseActivity {
      * 检查登录状态
      */
     private void checkLoginStatus() {
-        // ⭐ 使用 SharedPrefManager 获取 token
         String token = sharedPrefManager.getToken();
 
         if (TextUtils.isEmpty(token)) {
@@ -130,6 +152,8 @@ public class ProfileActivity extends BaseActivity {
     private void showLoginPrompt() {
         loginPromptLayout.setVisibility(View.VISIBLE);
         userInfoLayout.setVisibility(View.GONE);
+        // 清空统计数据
+        resetStatistics();
     }
 
     /**
@@ -144,7 +168,6 @@ public class ProfileActivity extends BaseActivity {
      * 加载用户信息
      */
     private void loadUserInfo() {
-        // ⭐ 使用 SharedPrefManager 获取数据
         long userId = sharedPrefManager.getUserId();
         String username = sharedPrefManager.getUsername();
         String token = sharedPrefManager.getToken();
@@ -168,6 +191,8 @@ public class ProfileActivity extends BaseActivity {
                 runOnUiThread(() -> {
                     displayUserInfo(user);
                     showUserInfo();
+                    // 加载统计数据
+                    loadStatistics(token);
                 });
             }
 
@@ -187,7 +212,7 @@ public class ProfileActivity extends BaseActivity {
      * 显示用户信息
      */
     private void displayUserInfo(User user) {
-        // 修改：昵称在上面，用户名在下面
+        // 昵称在上面，用户名在下面
         tvNickname.setText(user.getNickName());
         tvUsername.setText(user.getUserName());
 
@@ -224,6 +249,76 @@ public class ProfileActivity extends BaseActivity {
     }
 
     /**
+     * 新增:加载统计数据
+     */
+    private void loadStatistics(String token) {
+        // 先重置为0,避免显示旧数据
+        //resetStatistics();
+
+        // 加载帖子数量
+        userApiService.getMyPostsCount(token, new ApiCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer count) {
+                runOnUiThread(() -> tvPostsCount.setText(String.valueOf(count)));
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                runOnUiThread(() -> tvPostsCount.setText("0"));
+            }
+        });
+
+        // 加载收藏数量
+        userApiService.getMyFavoritesCount(token, new ApiCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer count) {
+                runOnUiThread(() -> tvFavoritesCount.setText(String.valueOf(count)));
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                runOnUiThread(() -> tvFavoritesCount.setText("0"));
+            }
+        });
+
+        // 加载关注数量
+        userApiService.getMyFollowingCount(token, new ApiCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer count) {
+                runOnUiThread(() -> tvFollowingCount.setText(String.valueOf(count)));
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                runOnUiThread(() -> tvFollowingCount.setText("0"));
+            }
+        });
+
+        // 加载粉丝数量
+        userApiService.getMyFollowersCount(token, new ApiCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer count) {
+                runOnUiThread(() -> tvFollowersCount.setText(String.valueOf(count)));
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                runOnUiThread(() -> tvFollowersCount.setText("0"));
+            }
+        });
+    }
+
+    /**
+     * 重置统计数据显示
+     */
+    private void resetStatistics() {
+        tvPostsCount.setText("0");
+        tvFollowingCount.setText("0");
+        tvFollowersCount.setText("0");
+        tvFavoritesCount.setText("0");
+    }
+
+    /**
      * 加载用户头像的方法
      */
     private void loadUserAvatar(String avatarUrl) {
@@ -253,11 +348,23 @@ public class ProfileActivity extends BaseActivity {
     }
 
     /**
+     * 跳转到用户列表页面
+     */
+    private void navigateToUserList(int listType) {
+        Intent intent = new Intent(this, UserListActivity.class);
+        intent.putExtra(UserListActivity.EXTRA_LIST_TYPE, listType);
+        startActivity(intent);
+    }
+
+    /**
      * 退出登录
      */
     private void logout() {
         // 清除本地存储的用户数据
         clearUserData();
+
+        // 重置统计数据
+        resetStatistics();
 
         // 显示登录提示
         showLoginPrompt();
@@ -269,7 +376,6 @@ public class ProfileActivity extends BaseActivity {
      * 清除用户数据
      */
     private void clearUserData() {
-        // ⭐ 使用 SharedPrefManager 清除数据
         sharedPrefManager.clearUserData();
     }
 
@@ -285,8 +391,16 @@ public class ProfileActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 页面重新显示时检查登录状态
-        checkLoginStatus();
+        // 页面重新显示时检查登录状态并刷新数据
+        String token = sharedPrefManager.getToken();
+
+        if (TextUtils.isEmpty(token)) {
+            // 未登录状态
+            showLoginPrompt();
+        } else {
+            // 已登录状态,重新加载用户信息和统计数据
+            loadUserInfo();
+        }
     }
 
     @Override

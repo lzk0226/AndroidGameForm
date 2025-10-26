@@ -143,9 +143,9 @@ public class LoginActivity extends AppCompatActivity {
                             showLoading(false);
 
                             // 保存 token（如果token不为空）
-                            if (!TextUtils.isEmpty(token)) {
+                            /*if (!TextUtils.isEmpty(token)) {
                                 SharedPrefManager.getInstance(LoginActivity.this).saveToken(token);
-                            }
+                            }*/
 
                             // 显示成功消息
                             Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();

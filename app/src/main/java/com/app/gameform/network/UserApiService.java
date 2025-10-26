@@ -1,17 +1,19 @@
 package com.app.gameform.network;
 
-import static com.app.gameform.network.ApiConstants.USER_PROFILE;
+import static com.app.gameform.network.ApiConstants.*;
 
 import android.util.Log;
 
 import com.app.gameform.Run.ApiResponse;
 import com.app.gameform.domain.User;
+import com.app.gameform.domain.UserFollow;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -86,6 +88,13 @@ public class UserApiService {
             case "PUT":
                 builder.put(body);
                 break;
+            case "DELETE":
+                if (body != null) {
+                    builder.delete(body);
+                } else {
+                    builder.delete();
+                }
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported HTTP method: " + method);
         }
@@ -130,7 +139,7 @@ public class UserApiService {
         String getDefaultSuccessMessage();
     }
 
-    // 以下所有接口调用均调用 makeRequest，保持方法名和签名不变
+    // ==================== 原有方法 ====================
 
     public void register(User user, ApiCallback<String> callback) {
         String url = BASE_URL + "/register";
@@ -244,6 +253,138 @@ public class UserApiService {
         makeRequest(url, "GET", null, null,
                 new TypeToken<ApiResponse<Boolean>>(){}.getType(),
                 callback, "checkPhoneUnique");
+    }
+
+    // ==================== 新增：帖子收藏相关方法 ====================
+
+    /**
+     * 获取我的收藏数量
+     */
+    public void getMyFavoritesCount(String token, ApiCallback<Integer> callback) {
+        String url = GET_MY_FAVORITES;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<List>>(){}.getType(),
+                new ApiCallback<List>() {
+                    @Override
+                    public void onSuccess(List data) {
+                        callback.onSuccess(data != null ? data.size() : 0);
+                    }
+                    @Override
+                    public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                }, "getMyFavoritesCount");
+    }
+
+    // ==================== 新增：用户关注相关方法 ====================
+
+    /**
+     * 获取我的关注数量
+     */
+    public void getMyFollowingCount(String token, ApiCallback<Integer> callback) {
+        String url = GET_MY_FOLLOWING;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<List>>(){}.getType(),
+                new ApiCallback<List>() {
+                    @Override
+                    public void onSuccess(List data) {
+                        callback.onSuccess(data != null ? data.size() : 0);
+                    }
+                    @Override
+                    public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                }, "getMyFollowingCount");
+    }
+
+    /**
+     * 获取我的粉丝数量
+     */
+    public void getMyFollowersCount(String token, ApiCallback<Integer> callback) {
+        String url = GET_MY_FOLLOWERS;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<List>>(){}.getType(),
+                new ApiCallback<List>() {
+                    @Override
+                    public void onSuccess(List data) {
+                        callback.onSuccess(data != null ? data.size() : 0);
+                    }
+                    @Override
+                    public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                }, "getMyFollowersCount");
+    }
+
+    /**
+     * 获取我的帖子数量
+     */
+    public void getMyPostsCount(String token, ApiCallback<Integer> callback) {
+        String url = GET_MY_POSTS;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<List>>(){}.getType(),
+                new ApiCallback<List>() {
+                    @Override
+                    public void onSuccess(List data) {
+                        callback.onSuccess(data != null ? data.size() : 0);
+                    }
+                    @Override
+                    public void onError(String errorMsg) {
+                        callback.onError(errorMsg);
+                    }
+                }, "getMyPostsCount");
+    }
+
+    // 在 UserApiService.java 类中添加以下方法
+
+    /**
+     * 获取我的关注列表(完整用户信息)
+     */
+    public void getMyFollowing(String token, ApiCallback<List<UserFollow>> callback) {
+        String url = GET_MY_FOLLOWING;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<List<UserFollow>>>(){}.getType(),
+                callback, "getMyFollowing");
+    }
+
+    /**
+     * 获取我的粉丝列表(完整用户信息)
+     */
+    public void getMyFollowers(String token, ApiCallback<List<UserFollow>> callback) {
+        String url = GET_MY_FOLLOWERS;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<List<UserFollow>>>(){}.getType(),
+                callback, "getMyFollowers");
+    }
+
+    /**
+     * 关注用户
+     */
+    public void followUser(long userId, String token, ApiCallback<Void> callback) {
+        String url = FOLLOW_USER + userId;
+        makeRequest(url, "POST", token, null,
+                new TypeToken<ApiResponse<Void>>(){}.getType(),
+                callback, "followUser");
+    }
+
+    /**
+     * 取消关注用户
+     */
+    public void unfollowUser(long userId, String token, ApiCallback<Void> callback) {
+        String url = UNFOLLOW_USER + userId;
+        makeRequest(url, "DELETE", token, null,
+                new TypeToken<ApiResponse<Void>>(){}.getType(),
+                callback, "unfollowUser");
+    }
+
+    /**
+     * 检查是否已关注某用户
+     */
+    public void checkFollowStatus(long userId, String token, ApiCallback<Boolean> callback) {
+        String url = CHECK_FOLLOW_STATUS + userId;
+        makeRequest(url, "GET", token, null,
+                new TypeToken<ApiResponse<Boolean>>(){}.getType(),
+                callback, "checkFollowStatus");
     }
 
     public void cancelAllRequests() {

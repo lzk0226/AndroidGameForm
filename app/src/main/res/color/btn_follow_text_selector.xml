@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- color/btn_follow_text_selector.xml -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- 已关注状态 - 灰色文字 -->
+  <item android:state_selected="true" android:color="#666666" />
+  <!-- 未关注状态 - 白色文字 -->
+  <item android:color="#FFFFFF" />
+</selector>
