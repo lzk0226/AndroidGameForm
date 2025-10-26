@@ -3,6 +3,7 @@ package com.app.gameform.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Draft;
 import com.app.gameform.domain.Post;
 import com.app.gameform.manager.DraftManager;
+import com.app.gameform.manager.SharedPrefManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.network.ApiService;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PostListFragment extends Fragment {
+    private static final String TAG = "PostListFragment";
     private static final String ARG_TYPE = "type";
 
     public static final int TYPE_DRAFT = 0;
@@ -41,8 +44,8 @@ public class PostListFragment extends Fragment {
     private TextView tvEmptyText;
 
     // 懒加载相关变量
-    private static final int PAGE_SIZE = 8; // 每页加载8个帖子
-    private static final int LOAD_MORE_THRESHOLD = 6; // 浏览到第6个时开始加载
+    private static final int PAGE_SIZE = 8;
+    private static final int LOAD_MORE_THRESHOLD = 6;
     private int currentPage = 1;
     private boolean hasMoreData = true;
     private boolean isLoading = false;
@@ -54,8 +57,9 @@ public class PostListFragment extends Fragment {
     private List<Draft> draftList;
     private LinearLayoutManager layoutManager;
 
-    // 草稿管理器
+    // 管理器
     private DraftManager draftManager;
+    private SharedPrefManager sharedPrefManager;
 
     public static PostListFragment newInstance(int type) {
         PostListFragment fragment = new PostListFragment();
@@ -71,9 +75,15 @@ public class PostListFragment extends Fragment {
         if (getArguments() != null) {
             type = getArguments().getInt(ARG_TYPE);
         }
+
+        // 初始化管理器
+        sharedPrefManager = SharedPrefManager.getInstance(requireContext());
+
         if (type == TYPE_DRAFT) {
             draftManager = DraftManager.getInstance(requireContext());
         }
+
+        Log.d(TAG, "Fragment创建 - 类型: " + (type == TYPE_DRAFT ? "草稿" : "已发布"));
     }
 
     @Nullable
@@ -105,22 +115,18 @@ public class PostListFragment extends Fragment {
     }
 
     private void setupScrollListener() {
-        // 只对已发布帖子设置滚动监听器，草稿不需要分页
         if (type == TYPE_PUBLISHED) {
             recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
                 @Override
                 public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                     super.onScrolled(recyclerView, dx, dy);
 
-                    if (dy > 0 && !isLoading && hasMoreData) { // 向下滑动且未在加载且还有更多数据
+                    if (dy > 0 && !isLoading && hasMoreData) {
                         int visibleItemCount = layoutManager.getChildCount();
                         int totalItemCount = layoutManager.getItemCount();
                         int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
-
-                        // 计算当前可见的最后一个item的位置
                         int lastVisibleItem = firstVisibleItemPosition + visibleItemCount;
 
-                        // 当浏览到倒数第3个item时开始加载更多
                         if ((totalItemCount - lastVisibleItem) <= (PAGE_SIZE - LOAD_MORE_THRESHOLD)) {
                             loadMorePosts();
                         }
@@ -157,21 +163,25 @@ public class PostListFragment extends Fragment {
             @Override
             public void onPostClick(Post post, int position) {
                 // TODO: 处理帖子点击事件
+                Log.d(TAG, "帖子点击 - ID: " + post.getPostId());
             }
 
             @Override
             public void onUserClick(Post post, int position) {
                 // TODO: 处理用户点击事件
+                Log.d(TAG, "用户点击 - ID: " + post.getUserId());
             }
 
             @Override
             public void onCommentClick(Post post, int position) {
                 // TODO: 处理评论点击事件
+                Log.d(TAG, "评论点击 - 帖子ID: " + post.getPostId());
             }
 
             @Override
             public void onViewClick(Post post, int position) {
                 // TODO: 处理浏览点击事件
+                Log.d(TAG, "浏览点击 - 帖子ID: " + post.getPostId());
             }
 
             @Override
@@ -191,17 +201,40 @@ public class PostListFragment extends Fragment {
                 handlePostLike(post, position);
             }
         });
+
         postAdapter.setUserPostList(true);
     }
 
     private void loadData() {
         resetPaginationData();
+
+        // ⭐ 添加登录状态检查和详细日志
+        Log.d(TAG, "========== 开始加载数据 ==========");
+        Log.d(TAG, "Fragment类型: " + (type == TYPE_DRAFT ? "草稿" : "已发布"));
+        Log.d(TAG, "是否已登录: " + sharedPrefManager.isLoggedIn());
+        Log.d(TAG, "用户ID: " + sharedPrefManager.getUserId());
+        Log.d(TAG, "Token存在: " + (sharedPrefManager.getToken() != null));
+
+        if (sharedPrefManager.getToken() != null) {
+            String token = sharedPrefManager.getToken();
+            Log.d(TAG, "Token长度: " + token.length());
+            Log.d(TAG, "Token前30字符: " + token.substring(0, Math.min(30, token.length())));
+        }
+
         switch (type) {
             case TYPE_DRAFT:
                 loadDraftPosts();
                 updateEmptyText("暂无草稿");
                 break;
             case TYPE_PUBLISHED:
+                // ⭐ 检查登录状态
+                if (!sharedPrefManager.isLoggedIn()) {
+                    Log.w(TAG, "用户未登录，无法加载已发布帖子");
+                    Toast.makeText(getContext(), "请先登录", Toast.LENGTH_SHORT).show();
+                    updateUI();
+                    return;
+                }
+
                 loadPublishedPosts(false);
                 updateEmptyText("暂无已发布内容");
                 break;
@@ -222,21 +255,44 @@ public class PostListFragment extends Fragment {
     }
 
     private void loadDraftPosts() {
+        Log.d(TAG, "开始加载草稿...");
+
         if (draftManager != null) {
             List<Draft> localDrafts = draftManager.getAllDrafts();
             draftList.clear();
             draftList.addAll(localDrafts);
+
+            Log.d(TAG, "草稿加载完成 - 数量: " + draftList.size());
         }
         updateUI();
     }
 
     private void loadPublishedPosts(boolean isLoadMore) {
-        if (isLoading) return;
+        if (isLoading) {
+            Log.d(TAG, "正在加载中，跳过重复请求");
+            return;
+        }
 
         isLoading = true;
 
-        // 构建带分页参数的URL
+        // ⭐ 添加详细的请求日志
         String url = ApiConstants.GET_MY_POSTS + "?page=" + currentPage + "&size=" + PAGE_SIZE;
+        Log.d(TAG, "========== 请求已发布帖子 ==========");
+        Log.d(TAG, "请求URL: " + url);
+        Log.d(TAG, "当前页: " + currentPage);
+        Log.d(TAG, "是否加载更多: " + isLoadMore);
+        Log.d(TAG, "用户ID: " + sharedPrefManager.getUserId());
+
+        String token = sharedPrefManager.getToken();
+        if (token == null) {
+            Log.e(TAG, "❌ Token为空，无法发起请求");
+            isLoading = false;
+            Toast.makeText(getContext(), "请先登录", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d(TAG, "Token: Bearer " + token.substring(0, Math.min(30, token.length())) + "...");
+        Log.d(TAG, "=====================================");
 
         ApiService.getInstance().getRequestWithAuth(
                 getContext(),
@@ -244,6 +300,9 @@ public class PostListFragment extends Fragment {
                 new ApiCallback<String>() {
                     @Override
                     public void onSuccess(String response) {
+                        Log.d(TAG, "✅ API请求成功");
+                        Log.d(TAG, "响应内容: " + response);
+
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 isLoading = false;
@@ -254,24 +313,27 @@ public class PostListFragment extends Fragment {
                                                     new com.google.gson.reflect.TypeToken<ApiService.ApiResponse<List<Post>>>(){}.getType()
                                             );
 
+                                    Log.d(TAG, "响应解析成功 - code: " + apiResponse.getCode() + ", msg: " + apiResponse.getMsg());
+
                                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                                         List<Post> newPosts = apiResponse.getData();
+                                        Log.d(TAG, "获取到帖子数量: " + newPosts.size());
 
-                                        // 检查是否还有更多数据
                                         hasMoreData = newPosts.size() == PAGE_SIZE;
 
                                         if (isLoadMore) {
-                                            // 加载更多：追加数据
                                             int startPosition = postList.size();
                                             postList.addAll(newPosts);
                                             postAdapter.notifyItemRangeInserted(startPosition, newPosts.size());
+                                            Log.d(TAG, "追加帖子 - 从位置: " + startPosition + ", 数量: " + newPosts.size());
                                         } else {
-                                            // 首次加载或刷新：替换数据
                                             postList.clear();
                                             postList.addAll(newPosts);
                                             postAdapter.notifyDataSetChanged();
+                                            Log.d(TAG, "刷新帖子列表 - 总数: " + postList.size());
                                         }
                                     } else {
+                                        Log.w(TAG, "API返回失败或无数据");
                                         if (!isLoadMore) {
                                             postList.clear();
                                         }
@@ -282,6 +344,9 @@ public class PostListFragment extends Fragment {
                                     }
                                     updateUI();
                                 } catch (Exception e) {
+                                    Log.e(TAG, "❌ 解析响应失败: " + e.getMessage());
+                                    e.printStackTrace();
+
                                     if (!isLoadMore) {
                                         postList.clear();
                                     }
@@ -295,11 +360,12 @@ public class PostListFragment extends Fragment {
 
                     @Override
                     public void onError(String error) {
+                        Log.e(TAG, "❌ API请求失败: " + error);
+
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 isLoading = false;
 
-                                // 加载失败时回退页码
                                 if (isLoadMore && currentPage > 1) {
                                     currentPage--;
                                 } else if (!isLoadMore) {
@@ -324,18 +390,22 @@ public class PostListFragment extends Fragment {
             if (draftList.isEmpty()) {
                 recyclerView.setVisibility(View.GONE);
                 emptyLayout.setVisibility(View.VISIBLE);
+                Log.d(TAG, "显示草稿空视图");
             } else {
                 recyclerView.setVisibility(View.VISIBLE);
                 emptyLayout.setVisibility(View.GONE);
                 draftAdapter.notifyDataSetChanged();
+                Log.d(TAG, "显示草稿列表 - 数量: " + draftList.size());
             }
         } else {
             if (postList.isEmpty()) {
                 recyclerView.setVisibility(View.GONE);
                 emptyLayout.setVisibility(View.VISIBLE);
+                Log.d(TAG, "显示已发布帖子空视图");
             } else {
                 recyclerView.setVisibility(View.VISIBLE);
                 emptyLayout.setVisibility(View.GONE);
+                Log.d(TAG, "显示已发布帖子列表 - 数量: " + postList.size());
             }
         }
     }
@@ -355,10 +425,10 @@ public class PostListFragment extends Fragment {
         builder.setTitle(draft.getDisplayTitle());
         builder.setItems(options, (dialog, which) -> {
             switch (which) {
-                case 0: // 编辑
+                case 0:
                     editDraft(draft);
                     break;
-                case 1: // 删除
+                case 1:
                     showDeleteDraftConfirm(draft, position);
                     break;
             }
@@ -411,10 +481,10 @@ public class PostListFragment extends Fragment {
         builder.setTitle(post.getPostTitle());
         builder.setItems(options, (dialog, which) -> {
             switch (which) {
-                case 0: // 编辑
+                case 0:
                     editPost(post);
                     break;
-                case 1: // 删除
+                case 1:
                     showDeletePostConfirm(post, position);
                     break;
             }
@@ -423,7 +493,6 @@ public class PostListFragment extends Fragment {
     }
 
     private void editPost(Post post) {
-        // TODO: 跳转到编辑帖子页面
         Toast.makeText(getContext(), "编辑功能待开发", Toast.LENGTH_SHORT).show();
     }
 
@@ -450,6 +519,7 @@ public class PostListFragment extends Fragment {
         if (post == null || getContext() == null) return;
 
         String deleteUrl = ApiConstants.USER_POST + post.getPostId();
+        Log.d(TAG, "删除帖子 - URL: " + deleteUrl);
 
         ApiService.getInstance().deleteRequestWithAuth(
                 getContext(),
@@ -457,6 +527,8 @@ public class PostListFragment extends Fragment {
                 new ApiCallback<String>() {
                     @Override
                     public void onSuccess(String response) {
+                        Log.d(TAG, "✅ 删除帖子成功 - ID: " + post.getPostId());
+
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 if (position >= 0 && position < postList.size()) {
@@ -472,6 +544,8 @@ public class PostListFragment extends Fragment {
 
                     @Override
                     public void onError(String error) {
+                        Log.e(TAG, "❌ 删除帖子失败: " + error);
+
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 Toast.makeText(getContext(), "删除失败: " + error, Toast.LENGTH_SHORT).show();
@@ -574,6 +648,7 @@ public class PostListFragment extends Fragment {
 
     // 公共方法供外部调用
     public void refreshData() {
+        Log.d(TAG, "触发刷新数据");
         resetPaginationData();
         loadData();
     }
@@ -609,10 +684,24 @@ public class PostListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        Log.d(TAG, "Fragment onResume - 类型: " + (type == TYPE_DRAFT ? "草稿" : "已发布"));
+
         if (type == TYPE_DRAFT) {
             loadDraftPosts();
         } else if (type == TYPE_PUBLISHED) {
             refreshData();
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(TAG, "Fragment onPause");
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        Log.d(TAG, "Fragment onDestroyView");
     }
 }
