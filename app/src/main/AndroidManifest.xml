@@ -53,8 +53,8 @@
         <activity android:name=".Activity.SearchResultActivity"
             android:exported="false"/>
         <activity android:name=".Activity.UserListActivity"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".Activity.MainActivity"
             android:exported="true">
