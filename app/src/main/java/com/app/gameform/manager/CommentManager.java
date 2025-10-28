@@ -61,10 +61,11 @@ public class CommentManager {
 
     /**
      * 获取帖子的评论列表
+     * 携带认证token，以便后端返回每条评论的点赞状态
      */
     public void getPostComments(int postId, ApiCallback<List<Comment>> callback) {
         String url = ApiConstants.GET_POST_COMMENTS + postId;
-        Request request = createGetRequest(url, false);
+        Request request = createGetRequest(url, true);
 
         client.newCall(request).enqueue(new Callback() {
             @Override

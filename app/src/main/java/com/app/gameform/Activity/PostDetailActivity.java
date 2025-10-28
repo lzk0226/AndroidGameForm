@@ -988,7 +988,8 @@ public class PostDetailActivity extends AppCompatActivity {
     private Request createGetRequest(String url) {
         Request.Builder builder = new Request.Builder().url(url);
         if (isLoggedIn && !TextUtils.isEmpty(authToken)) {
-            builder.addHeader("Authorization", authToken);
+            String token = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+            builder.addHeader("Authorization", token);
         }
         return builder.build();
     }
@@ -996,7 +997,8 @@ public class PostDetailActivity extends AppCompatActivity {
     private Request createPostRequest(String url, RequestBody body) {
         Request.Builder builder = new Request.Builder().url(url).post(body);
         if (isLoggedIn && !TextUtils.isEmpty(authToken)) {
-            builder.addHeader("Authorization", authToken);
+            String token = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+            builder.addHeader("Authorization", token);
         }
         return builder.build();
     }
@@ -1004,7 +1006,8 @@ public class PostDetailActivity extends AppCompatActivity {
     private Request createDeleteRequest(String url) {
         Request.Builder builder = new Request.Builder().url(url).delete();
         if (isLoggedIn && !TextUtils.isEmpty(authToken)) {
-            builder.addHeader("Authorization", authToken);
+            String token = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+            builder.addHeader("Authorization", token);
         }
         return builder.build();
     }
