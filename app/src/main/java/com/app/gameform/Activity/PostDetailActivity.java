@@ -213,7 +213,8 @@ public class PostDetailActivity extends AppCompatActivity {
         commentAdapter = new CommentAdapter(
                 commentList,
                 this::onCommentLikeClicked,
-                this::onCommentReplyClicked
+                this::onCommentReplyClicked,
+                this::onUserAvatarClicked  // 新增：头像点击监听
         );
         recyclerComments.setAdapter(commentAdapter);
     }
@@ -1042,6 +1043,41 @@ public class PostDetailActivity extends AppCompatActivity {
 
         Log.d(TAG, "开始回复评论 - CommentId: " + comment.getCommentId() +
                 ", Username: " + username);
+    }
+
+    /**
+     * 处理用户头像点击
+     * 参照HomeActivity的onUserClick方法实现
+     */
+    private void onUserAvatarClicked(Comment comment) {
+        // 1. 数据验证
+        if (comment == null) {
+            showToast("评论数据异常");
+            return;
+        }
+
+        if (comment.getUserId() == null) {
+            showToast("用户信息不完整");
+            return;
+        }
+
+        // 2. 检查是否是当前用户自己
+        long currentUserId = sharedPrefManager.getUserId();
+
+        if (currentUserId != 0 && currentUserId == comment.getUserId()) {
+            showToast("这是你自己的主页");
+            return;
+        }
+
+        // 3. 跳转到用户主页
+        try {
+            UserProfileActivity.start(this, comment.getUserId());
+            Log.d(TAG, "跳转到用户主页 - UserId: " + comment.getUserId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            showToast("跳转失败: " + e.getMessage());
+            Log.e(TAG, "跳转用户主页失败", e);
+        }
     }
 
     /**

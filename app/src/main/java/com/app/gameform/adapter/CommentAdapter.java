@@ -27,13 +27,16 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
     private List<Comment> commentList;
     private OnCommentLikeClickListener likeClickListener;
     private OnCommentReplyClickListener replyClickListener;
+    private OnUserAvatarClickListener avatarClickListener;
 
     public CommentAdapter(List<Comment> commentList,
                           OnCommentLikeClickListener likeClickListener,
-                          OnCommentReplyClickListener replyClickListener) {
+                          OnCommentReplyClickListener replyClickListener,
+                          OnUserAvatarClickListener avatarClickListener) {
         this.commentList = commentList;
         this.likeClickListener = likeClickListener;
         this.replyClickListener = replyClickListener;
+        this.avatarClickListener = avatarClickListener;
     }
 
     @NonNull
@@ -59,6 +62,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         updateLikeButtonStatus(holder.ivLike, comment.getHasLiked());
         setupLikeClickListener(holder.ivLike, comment);
         setupReplyClickListener(holder.tvReply, comment);
+        setupAvatarClickListener(holder.ivUserAvatar, comment);
     }
 
     private void bindReplyComments(ViewHolder holder, Comment comment) {
@@ -102,6 +106,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
             setReplyLikeCount(tvReplyLikeCount, reply.getLikeCount());
             loadUserAvatar(parent.getContext(), ivReplyAvatar, reply.getUserAvatar());
             setupReplyButtonClickListener(tvReplyButton, reply);
+            setupAvatarClickListener(ivReplyAvatar, reply);
 
             return replyView;
         } catch (Exception e) {
@@ -208,6 +213,10 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         void onCommentReplyClick(Comment comment);
     }
 
+    public interface OnUserAvatarClickListener {
+        void onUserAvatarClick(Comment comment);
+    }
+
     // 辅助方法
     private void setUserName(TextView textView, String name) {
         textView.setText(name);
@@ -237,6 +246,14 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         replyButton.setOnClickListener(v -> {
             if (replyClickListener != null) {
                 replyClickListener.onCommentReplyClick(comment);
+            }
+        });
+    }
+
+    private void setupAvatarClickListener(CircleImageView avatarView, Comment comment) {
+        avatarView.setOnClickListener(v -> {
+            if (avatarClickListener != null) {
+                avatarClickListener.onUserAvatarClick(comment);
             }
         });
     }
