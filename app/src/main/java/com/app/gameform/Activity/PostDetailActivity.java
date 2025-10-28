@@ -30,6 +30,7 @@ import com.app.gameform.manager.CommentLikeManager;
 import com.app.gameform.manager.CommentManager;
 import com.app.gameform.manager.PostFavoriteManager;
 import com.app.gameform.manager.SharedPrefManager;
+import com.app.gameform.manager.UserFollowManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiService;
 import com.app.gameform.utils.ImageUtils;
@@ -107,6 +108,7 @@ public class PostDetailActivity extends AppCompatActivity {
     private CommentManager commentManager;
     private SharedPrefManager sharedPrefManager;
     private CommentLikeManager commentLikeManager;
+    private UserFollowManager followManager;  // 新增：关注管理器
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,6 +141,7 @@ public class PostDetailActivity extends AppCompatActivity {
         favoriteManager = new PostFavoriteManager(this);
         commentManager = new CommentManager(this);
         commentLikeManager = new CommentLikeManager(this);
+        followManager = new UserFollowManager(this);  // 新增：初始化关注管理器
     }
 
     /**
@@ -452,7 +455,31 @@ public class PostDetailActivity extends AppCompatActivity {
      * 检查关注状态
      */
     private void checkFollowStatus() {
-        // TODO: 调用关注状态检查API
+        if (currentPost == null || currentPost.getUserId() == null) {
+            return;
+        }
+
+        // 使用 UserFollowManager 检查关注状态
+        followManager.checkFollowStatus(currentPost.getUserId(), new ApiCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean hasFollowedStatus) {
+                runOnUiThread(() -> {
+                    hasFollowed = hasFollowedStatus != null && hasFollowedStatus;
+                    updateFollowUI();
+                    Log.d(TAG, "关注状态检查完成 - hasFollowed: " + hasFollowed);
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "检查关注状态失败: " + error);
+                // 失败时默认显示未关注状态
+                runOnUiThread(() -> {
+                    hasFollowed = false;
+                    updateFollowUI();
+                });
+            }
+        });
     }
 
     /**
@@ -781,8 +808,48 @@ public class PostDetailActivity extends AppCompatActivity {
             return;
         }
 
-        // TODO: 实现关注功能
-        showToast("关注功能开发中");
+        if (currentPost == null || currentPost.getUserId() == null) {
+            showToast("用户信息无效");
+            return;
+        }
+
+        // 使用 UserFollowManager 处理关注
+        followManager.handleFollowClick(currentPost.getUserId(),
+                new UserFollowManager.FollowStatusCallback() {
+                    @Override
+                    public void onUpdate(boolean hasFollowedNow, String message) {
+                        // 更新关注状态
+                        hasFollowed = hasFollowedNow;
+                        // 更新UI
+                        updateFollowUI();
+                        Log.d(TAG, "关注状态更新: " + hasFollowedNow);
+                    }
+
+                    @Override
+                    public void onFail(String errorMessage) {
+                        Log.e(TAG, "关注操作失败: " + errorMessage);
+                        // Toast已在Manager中显示
+                    }
+                });
+    }
+
+    /**
+     * 更新关注按钮UI
+     */
+    private void updateFollowUI() {
+        runOnUiThread(() -> {
+            if (ivFollow != null) {
+                if (hasFollowed) {
+                    // 已关注状态 - 显示已关注图标
+                    ivFollow.setImageResource(R.mipmap.ygz);
+                    ivFollow.setColorFilter(getColor(R.color.colorAccent));
+                } else {
+                    // 未关注状态 - 显示关注图标
+                    ivFollow.setImageResource(R.mipmap.ft);
+                    ivFollow.setColorFilter(getColor(android.R.color.holo_blue_light));
+                }
+            }
+        });
     }
 
     /**

@@ -816,4 +816,116 @@ public class ApiService {
             }
         });
     }
+    // ==================== 在 ApiService.java 中添加以下方法 ====================
+// 建议添加到文件末尾，在 unlikeComment 方法之后
+
+    /**
+     * 检查用户关注状态
+     * @param context 上下文
+     * @param userId 要检查的用户ID
+     * @param callback 回调
+     */
+    public void checkFollowStatus(Context context, Long userId, ApiCallback<Boolean> callback) {
+        String url = ApiConstants.CHECK_FOLLOW_STATUS + userId;
+
+        getRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<Boolean> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<Boolean>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        callback.onError(apiResponse != null ? apiResponse.getMsg() : "检查关注状态失败");
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析关注状态失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 关注用户
+     * @param context 上下文
+     * @param userId 要关注的用户ID
+     * @param callback 回调
+     */
+    public void followUser(Context context, Long userId, ApiCallback<Boolean> callback) {
+        String url = ApiConstants.FOLLOW_USER + userId;
+
+        postRequestWithAuth(context, url, "", new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<String> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<String>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(true);
+                    } else {
+                        callback.onError(apiResponse != null ? apiResponse.getMsg() : "关注失败");
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析关注响应失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 取消关注用户
+     * @param context 上下文
+     * @param userId 要取消关注的用户ID
+     * @param callback 回调
+     */
+    public void unfollowUser(Context context, Long userId, ApiCallback<Boolean> callback) {
+        String url = ApiConstants.UNFOLLOW_USER + userId;
+
+        deleteRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<String> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<String>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(true);
+                    } else {
+                        callback.onError(apiResponse != null ? apiResponse.getMsg() : "取消关注失败");
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析取消关注响应失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+// ==================== 方法添加结束 ====================
 }
