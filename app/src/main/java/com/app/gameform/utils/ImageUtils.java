@@ -35,6 +35,7 @@ public class ImageUtils {
             ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"
     );
 
+
     /**
      * 规范化文件路径
      * 解决Windows路径分隔符问题
