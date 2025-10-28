@@ -18,10 +18,12 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.app.gameform.Activity.PostDetailActivity;
 import com.app.gameform.Activity.SearchActivity;
+import com.app.gameform.Activity.UserProfileActivity;
 import com.app.gameform.R;
 import com.app.gameform.adapter.PostAdapter;
 import com.app.gameform.domain.Post;
 import com.app.gameform.manager.PostLikeManager;
+import com.app.gameform.manager.SharedPrefManager;
 import com.app.gameform.network.ApiCallback;
 import com.app.gameform.network.ApiConstants;
 import com.app.gameform.network.ApiService;
@@ -46,6 +48,7 @@ public class HomeActivity extends BaseActivity implements
     private SwipeRefreshLayout swipeRefreshLayout;
     private String currentTab = "recommend";
     private LinearLayoutManager layoutManager;
+    private SharedPrefManager sharedPrefManager;
 
     // 懒加载相关变量
     private static final int PAGE_SIZE = 8; // 每页加载8个帖子
@@ -73,6 +76,7 @@ public class HomeActivity extends BaseActivity implements
             setupBottomNavigation();
             setupSwipeRefresh();
             setupScrollListener();
+            sharedPrefManager = SharedPrefManager.getInstance(this);
 
             switchTab(currentTab);
             loadPostDataWithCache(currentTab, true);
@@ -521,7 +525,32 @@ public class HomeActivity extends BaseActivity implements
 
     @Override
     public void onUserClick(Post post, int position) {
-        Toast.makeText(this, "点击了用户: " + post.getNickName(), Toast.LENGTH_SHORT).show();
+
+        if (post == null) {
+            Toast.makeText(this, "帖子数据异常", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (post.getUserId() == null) {
+            Toast.makeText(this, "用户信息不完整", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 检查是否是当前用户自己
+        long currentUserId = sharedPrefManager.getUserId();
+
+        if (currentUserId != 0 && currentUserId == post.getUserId()) {
+            Toast.makeText(this, "这是你自己的主页", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 跳转到用户主页
+        try {
+            UserProfileActivity.start(this, post.getUserId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "跳转失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override

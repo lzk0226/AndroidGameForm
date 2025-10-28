@@ -11,4 +11,14 @@
     <color name="colorPrimary">#2196F3</color>
     <color name="colorPrimaryDark">#1976D2</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="textPrimary">#1A1A1A</color>
+    <color name="textSecondary">#666666</color>
+    <color name="textTertiary">#999999</color>
+
+    <color name="bgPrimary">#FFFFFF</color>
+    <color name="bgSecondary">#F5F5F5</color>
+    <color name="bgTertiary">#FAFAFA</color>
+
+    <color name="divider">#F0F0F0</color>
+    <color name="error">#D9534F</color>
 </resources>

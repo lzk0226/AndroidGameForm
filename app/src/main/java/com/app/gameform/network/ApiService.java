@@ -716,4 +716,104 @@ public class ApiService {
             }
         });
     }
+    // ========== 在 ApiService.java 中添加以下方法 ==========
+
+    /**
+     * 检查评论点赞状态
+     */
+    public void checkCommentLikeStatus(Context context, int commentId, ApiCallback<Boolean> callback) {
+        String url = ApiConstants.CHECK_COMMENT_LIKE_STATUS + commentId;
+
+        getRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<Boolean> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<Boolean>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        callback.onError(apiResponse != null ? apiResponse.getMsg() : "检查点赞状态失败");
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析评论点赞状态失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 点赞评论
+     */
+    public void likeComment(Context context, int commentId, ApiCallback<Boolean> callback) {
+        String url = ApiConstants.USER_COMMENT_LIKE + commentId;
+
+        postRequestWithAuth(context, url, "", new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<Boolean> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<Boolean>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(true);
+                    } else {
+                        callback.onError(apiResponse != null ? apiResponse.getMsg() : "点赞失败");
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析点赞评论响应失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    /**
+     * 取消点赞评论
+     */
+    public void unlikeComment(Context context, int commentId, ApiCallback<Boolean> callback) {
+        String url = ApiConstants.USER_COMMENT_LIKE + commentId;
+
+        deleteRequestWithAuth(context, url, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    ApiResponse<Boolean> apiResponse = gson.fromJson(
+                            response,
+                            new TypeToken<ApiResponse<Boolean>>(){}.getType()
+                    );
+
+                    if (apiResponse != null && apiResponse.isSuccess()) {
+                        callback.onSuccess(true);
+                    } else {
+                        callback.onError(apiResponse != null ? apiResponse.getMsg() : "取消点赞失败");
+                    }
+                } catch (Exception e) {
+                    Log.e("ApiService", "解析取消点赞评论响应失败: " + e.getMessage());
+                    callback.onError("数据解析失败");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
 }

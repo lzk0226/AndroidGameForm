@@ -56,6 +56,10 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".Activity.UserProfileActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".Activity.MainActivity"
             android:exported="true">
             <intent-filter>

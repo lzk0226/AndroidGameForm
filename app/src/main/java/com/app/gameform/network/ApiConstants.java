@@ -180,6 +180,8 @@ public class ApiConstants {
     // 获取指定用户的关注列表
     public static final String GET_USER_FOLLOWING = BASE_URL + "/user/follow/following/";
 
+    public static final String CHECK_COMMENT_LIKE_STATUS = BASE_URL + "/user/comment/like/check/";
+
     // ================== 工具方法 ==================
 
     /**
