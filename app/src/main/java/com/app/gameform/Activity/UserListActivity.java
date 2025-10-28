@@ -25,7 +25,7 @@ import com.app.gameform.network.UserApiService;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UserListActivity extends BaseActivity {
+public class UserListActivity extends AppCompatActivity {
 
     public static final String EXTRA_LIST_TYPE = "list_type";
     public static final int TYPE_FOLLOWING = 1; // 关注列表
