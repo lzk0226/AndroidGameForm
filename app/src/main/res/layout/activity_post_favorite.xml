@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_gray"
+    android:fitsSystemWindows="true">
+
+    <!-- 标题栏 -->
+    <LinearLayout
+        android:id="@+id/layout_title"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/white"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <!-- 返回按钮 -->
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_back"
+            android:tint="@color/text_primary"
+            android:contentDescription="@string/back" />
+
+        <!-- 标题 -->
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:text="我的收藏"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- 编辑按钮 -->
+        <TextView
+            android:id="@+id/tv_edit_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:text="编辑"
+            android:textColor="@color/primary"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- 编辑操作栏 -->
+    <LinearLayout
+        android:id="@+id/layout_edit_actions"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_below="@id/layout_title"
+        android:background="@color/white"
+        android:elevation="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone">
+
+        <!-- 全选 -->
+        <CheckBox
+            android:id="@+id/cb_select_all"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="全选"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- 取消按钮 -->
+        <TextView
+            android:id="@+id/tv_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:text="取消"
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp" />
+
+        <!-- 删除按钮 -->
+        <TextView
+            android:id="@+id/tv_delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:enabled="false"
+            android:padding="8dp"
+            android:text="删除"
+            android:textColor="@color/error"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- 主内容区域 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/layout_title">
+
+        <!-- 下拉刷新 + 列表 -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <!-- 空视图 -->
+        <LinearLayout
+            android:id="@+id/empty_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:alpha="0.3"
+                android:src="@drawable/ic_empty_favorite"
+                android:contentDescription="@string/empty" />
+
+            <TextView
+                android:id="@+id/tv_empty_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="还没有收藏任何帖子"
+                android:textColor="@color/text_secondary"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <!-- 加载中视图 -->
+        <LinearLayout
+            android:id="@+id/loading_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminate="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="加载中..."
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+</RelativeLayout>

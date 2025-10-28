@@ -12,6 +12,7 @@ import androidx.cardview.widget.CardView;
 import com.app.gameform.Activity.EditProfileActivity;
 import com.app.gameform.Activity.LoginActivity;
 import com.app.gameform.Activity.UserListActivity;
+import com.app.gameform.Activity.PostFavoriteActivity;
 import com.app.gameform.R;
 import com.app.gameform.domain.User;
 import com.app.gameform.manager.SharedPrefManager;
@@ -110,9 +111,7 @@ public class ProfileActivity extends BaseActivity {
         );
         cvMyFollowing.setOnClickListener(v -> navigateToUserList(UserListActivity.TYPE_FOLLOWING));
         cvMyFollowers.setOnClickListener(v -> navigateToUserList(UserListActivity.TYPE_FOLLOWERS));
-        cvMyFavorites.setOnClickListener(v ->
-                Toast.makeText(this, "收藏列表功能开发中", Toast.LENGTH_SHORT).show()
-        );
+        cvMyFavorites.setOnClickListener(v -> navigateToFavorites());
     }
 
     /**
@@ -353,6 +352,14 @@ public class ProfileActivity extends BaseActivity {
     private void navigateToUserList(int listType) {
         Intent intent = new Intent(this, UserListActivity.class);
         intent.putExtra(UserListActivity.EXTRA_LIST_TYPE, listType);
+        startActivity(intent);
+    }
+
+    /**
+     * 跳转到收藏列表页面
+     */
+    private void navigateToFavorites() {
+        Intent intent = new Intent(this, PostFavoriteActivity.class);
         startActivity(intent);
     }
 

@@ -21,4 +21,24 @@
 
     <color name="divider">#F0F0F0</color>
     <color name="error">#D9534F</color>
+
+    <!-- 主题色 -->
+    <color name="primary">#FF6200EE</color>
+    <color name="primary_dark">#FF3700B3</color>
+    <color name="accent">#FF03DAC5</color>
+
+    <!-- 背景色 -->
+    <color name="background_gray">#FFF5F5F5</color>
+
+    <!-- 文本颜色 -->
+    <color name="text_primary">#FF212121</color>
+    <color name="text_secondary">#FF757575</color>
+    <color name="text_hint">#FFBDBDBD</color>
+
+    <!-- 功能色 -->
+    <color name="success">#FF4CAF50</color>
+    <color name="warning">#FFFF9800</color>
+
+    <!-- 其他 -->
+    <color name="transparent">#00000000</color>
 </resources>
