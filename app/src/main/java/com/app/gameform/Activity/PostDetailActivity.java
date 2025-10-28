@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.R;
+import com.app.gameform.Activity.UserProfileActivity;
 import com.app.gameform.adapter.CommentAdapter;
 import com.app.gameform.domain.Comment;
 import com.app.gameform.domain.Post;
@@ -286,8 +287,30 @@ public class PostDetailActivity extends AppCompatActivity {
 
         // 用户头像点击
         ivUserAvatar.setOnClickListener(v -> {
-            if (currentPost != null && currentPost.getUserId() != null) {
-                // TODO: 跳转到用户主页
+            if (currentPost == null) {
+                showToast("帖子数据异常");
+                return;
+            }
+
+            if (currentPost.getUserId() == null) {
+                showToast("用户信息不完整");
+                return;
+            }
+
+            // 检查是否是当前用户自己
+            long currentUserId = sharedPrefManager.getUserId();
+
+            if (currentUserId != 0 && currentUserId == currentPost.getUserId()) {
+                showToast("这是你自己的主页");
+                return;
+            }
+
+            // 跳转到用户主页
+            try {
+                UserProfileActivity.start(this, currentPost.getUserId());
+            } catch (Exception e) {
+                e.printStackTrace();
+                showToast("跳转失败: " + e.getMessage());
             }
         });
 
