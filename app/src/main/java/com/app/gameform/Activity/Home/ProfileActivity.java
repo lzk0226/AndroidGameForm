@@ -26,7 +26,7 @@ import java.util.Locale;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class ProfileActivity extends BaseActivity {
+public class ProfileActivity extends BaseActivity implements SharedPrefManager.TokenChangeListener {
     private BottomNavigationHelper bottomNavigationHelper;
     private SharedPrefManager sharedPrefManager;
     private UserApiService userApiService;
@@ -57,6 +57,10 @@ public class ProfileActivity extends BaseActivity {
 
     private static final int REQUEST_CODE_EDIT_PROFILE = 1001;
 
+    // ⭐ 新增：标记是否已加载过数据，避免重复加载
+    private boolean isDataLoaded = false;
+    private User cachedUser = null; // 缓存用户信息
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,6 +69,10 @@ public class ProfileActivity extends BaseActivity {
         initViews();
         initServices();
         setupBottomNavigation();
+
+        // ⭐ 注册 Token 监听器
+        sharedPrefManager.addTokenChangeListener(this);
+
         checkLoginStatus();
     }
 
@@ -139,6 +147,8 @@ public class ProfileActivity extends BaseActivity {
         if (TextUtils.isEmpty(token)) {
             // 未登录状态
             showLoginPrompt();
+            isDataLoaded = false;
+            cachedUser = null;
         } else {
             // 已登录状态，加载用户信息
             loadUserInfo();
@@ -153,6 +163,8 @@ public class ProfileActivity extends BaseActivity {
         userInfoLayout.setVisibility(View.GONE);
         // 清空统计数据
         resetStatistics();
+        isDataLoaded = false;
+        cachedUser = null;
     }
 
     /**
@@ -183,11 +195,22 @@ public class ProfileActivity extends BaseActivity {
             return;
         }
 
+        // ⭐ 如果有缓存且已加载过，直接显示缓存数据
+        if (isDataLoaded && cachedUser != null) {
+            displayUserInfo(cachedUser);
+            showUserInfo();
+            // 静默刷新统计数据（不阻塞UI）
+            loadStatistics(token);
+            return;
+        }
+
         // 从API获取完整用户信息
         userApiService.getUserInfo(userId, token, new ApiCallback<User>() {
             @Override
             public void onSuccess(User user) {
                 runOnUiThread(() -> {
+                    cachedUser = user; // 缓存用户信息
+                    isDataLoaded = true;
                     displayUserInfo(user);
                     showUserInfo();
                     // 加载统计数据
@@ -251,9 +274,6 @@ public class ProfileActivity extends BaseActivity {
      * 新增:加载统计数据
      */
     private void loadStatistics(String token) {
-        // 先重置为0,避免显示旧数据
-        //resetStatistics();
-
         // 加载帖子数量
         userApiService.getMyPostsCount(token, new ApiCallback<Integer>() {
             @Override
@@ -384,13 +404,17 @@ public class ProfileActivity extends BaseActivity {
      */
     private void clearUserData() {
         sharedPrefManager.clearUserData();
+        isDataLoaded = false;
+        cachedUser = null;
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_EDIT_PROFILE && resultCode == RESULT_OK) {
-            // 编辑个人信息成功后，重新加载用户信息
+            // 编辑个人信息成功后，强制重新加载用户信息
+            isDataLoaded = false; // 清除标记，强制刷新
+            cachedUser = null;
             loadUserInfo();
         }
     }
@@ -398,21 +422,51 @@ public class ProfileActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 页面重新显示时检查登录状态并刷新数据
+        // ⭐ 页面重新显示时检查登录状态
+        // 如果已有缓存数据，只刷新统计数据，不重新加载用户信息
         String token = sharedPrefManager.getToken();
 
         if (TextUtils.isEmpty(token)) {
             // 未登录状态
             showLoginPrompt();
+        } else if (isDataLoaded && cachedUser != null) {
+            // 已有缓存，只刷新统计数据
+            loadStatistics(token);
         } else {
-            // 已登录状态,重新加载用户信息和统计数据
+            // 没有缓存，加载完整数据
             loadUserInfo();
         }
+    }
+
+    // ⭐ 实现 TokenChangeListener 接口
+    @Override
+    public void onTokenChanged(String newToken) {
+        // Token 更新后，静默刷新数据
+        runOnUiThread(() -> {
+            if (isDataLoaded && cachedUser != null) {
+                // 只刷新统计数据
+                loadStatistics(newToken);
+            }
+        });
+    }
+
+    @Override
+    public void onUserLoggedOut() {
+        // 用户登出后，清除UI
+        runOnUiThread(() -> {
+            showLoginPrompt();
+        });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // ⭐ 移除 Token 监听器
+        if (sharedPrefManager != null) {
+            sharedPrefManager.removeTokenChangeListener(this);
+        }
+
         // 清理资源
         if (userApiService != null) {
             userApiService.cancelAllRequests();

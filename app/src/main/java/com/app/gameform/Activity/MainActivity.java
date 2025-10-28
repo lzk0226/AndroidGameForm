@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.app.gameform.Activity.Home.HomeActivity;
 import com.app.gameform.R;
 import com.app.gameform.manager.SharedPrefManager;
+import com.app.gameform.utils.PostDetailPreloader;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -24,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "启动页创建");
 
+        PostDetailPreloader.getInstance().preloadComponents(this);
         // ⭐ 启动时自动刷新 Token
         autoRefreshTokenAndNavigate();
     }

@@ -9,6 +9,8 @@ import com.app.gameform.network.ApiConstants;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -29,6 +31,9 @@ public class SharedPrefManager {
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_USERNAME = "username";
+
+    // ⭐ 新增：Token 变更监听器列表
+    private List<TokenChangeListener> tokenChangeListeners = new ArrayList<>();
 
     private SharedPrefManager(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -51,6 +56,9 @@ public class SharedPrefManager {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(KEY_TOKEN, token);
         editor.apply();
+
+        // ⭐ 通知监听器 token 已更新
+        notifyTokenChanged(token);
     }
 
     /**
@@ -128,6 +136,9 @@ public class SharedPrefManager {
         editor.remove(KEY_USER_ID);
         editor.remove(KEY_USERNAME);
         editor.apply();
+
+        // ⭐ 通知监听器用户已登出
+        notifyUserLoggedOut();
     }
 
     // ==================== 自动刷新 Token 功能 ====================
@@ -207,7 +218,7 @@ public class SharedPrefManager {
                         String newAccessToken = data.getString("accessToken");
                         String newRefreshToken = data.getString("refreshToken");
 
-                        // 保存新的 Token
+                        // 保存新的 Token（会自动触发监听器）
                         saveToken(newAccessToken);
                         saveRefreshToken(newRefreshToken);
 
@@ -232,6 +243,71 @@ public class SharedPrefManager {
                 }
             }
         });
+    }
+
+    // ==================== ⭐ 新增：Token 监听器机制 ====================
+
+    /**
+     * 添加 Token 变更监听器
+     */
+    public void addTokenChangeListener(TokenChangeListener listener) {
+        if (listener != null && !tokenChangeListeners.contains(listener)) {
+            tokenChangeListeners.add(listener);
+            Log.d(TAG, "添加 Token 监听器，当前监听器数量: " + tokenChangeListeners.size());
+        }
+    }
+
+    /**
+     * 移除 Token 变更监听器
+     */
+    public void removeTokenChangeListener(TokenChangeListener listener) {
+        if (listener != null) {
+            tokenChangeListeners.remove(listener);
+            Log.d(TAG, "移除 Token 监听器，当前监听器数量: " + tokenChangeListeners.size());
+        }
+    }
+
+    /**
+     * 通知所有监听器 Token 已更新
+     */
+    private void notifyTokenChanged(String newToken) {
+        Log.d(TAG, "通知 Token 变更，监听器数量: " + tokenChangeListeners.size());
+        for (TokenChangeListener listener : new ArrayList<>(tokenChangeListeners)) {
+            try {
+                listener.onTokenChanged(newToken);
+            } catch (Exception e) {
+                Log.e(TAG, "通知监听器时出错: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 通知所有监听器用户已登出
+     */
+    private void notifyUserLoggedOut() {
+        Log.d(TAG, "通知用户登出，监听器数量: " + tokenChangeListeners.size());
+        for (TokenChangeListener listener : new ArrayList<>(tokenChangeListeners)) {
+            try {
+                listener.onUserLoggedOut();
+            } catch (Exception e) {
+                Log.e(TAG, "通知监听器时出错: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Token 变更监听器接口
+     */
+    public interface TokenChangeListener {
+        /**
+         * Token 已更新
+         */
+        void onTokenChanged(String newToken);
+
+        /**
+         * 用户已登出
+         */
+        void onUserLoggedOut();
     }
 
     /**
