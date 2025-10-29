@@ -11,7 +11,7 @@
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="52dp"
         android:background="#FFFFFF"
         android:orientation="horizontal"
         android:gravity="center_vertical"
@@ -63,8 +63,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:background="#FFFFFF"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="16dp">
+                android:paddingHorizontal="14dp"
+                android:paddingTop="12dp">
 
                 <!-- 用户信息区域 -->
                 <LinearLayout
@@ -75,8 +75,8 @@
 
                     <de.hdodenhof.circleimageview.CircleImageView
                         android:id="@+id/iv_user_avatar"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:src="@drawable/ic_default_avatar" />
 
                     <LinearLayout
@@ -84,14 +84,14 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:layout_marginStart="12dp">
+                        android:layout_marginStart="10dp">
 
                         <TextView
                             android:id="@+id/tv_user_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="用户昵称"
-                            android:textSize="15sp"
+                            android:textSize="14sp"
                             android:textStyle="bold"
                             android:textColor="#1A1A1A" />
 
@@ -100,7 +100,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="刚刚"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textColor="#999999"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -122,18 +122,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="帖子标题"
-                    android:textSize="20sp"
+                    android:textSize="19sp"
                     android:textColor="#1A1A1A"
                     android:textStyle="bold"
-                    android:lineHeight="28dp"
-                    android:layout_marginTop="16dp" />
+                    android:lineHeight="26dp"
+                    android:layout_marginTop="12dp" />
 
-                <!-- 富文本内容 - 增大显示区域 -->
+                <!-- 富文本内容 - 增大显示区域，去除水平内边距 -->
                 <WebView
                     android:id="@+id/web_view_content"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginStart="-14dp"
+                    android:layout_marginEnd="-14dp"
                     android:minHeight="300dp"
                     android:background="@android:color/transparent" />
 
@@ -144,8 +146,10 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center"
-                    android:layout_marginTop="20dp"
-                    android:paddingVertical="12dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="-14dp"
+                    android:layout_marginEnd="-14dp"
+                    android:paddingVertical="8dp"
                     android:background="#F8F9FA">
 
                     <!-- 点赞 -->
@@ -156,13 +160,13 @@
                         android:layout_weight="1"
                         android:orientation="horizontal"
                         android:gravity="center"
-                        android:padding="8dp"
+                        android:paddingVertical="6dp"
                         android:background="?attr/selectableItemBackground">
 
                         <ImageView
                             android:id="@+id/iv_like"
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@mipmap/dz"
                             app:tint="#666666" />
 
@@ -171,9 +175,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textColor="#666666"
-                            android:layout_marginStart="6dp" />
+                            android:layout_marginStart="5dp" />
                     </LinearLayout>
 
                     <!-- 评论 -->
@@ -184,12 +188,12 @@
                         android:layout_weight="1"
                         android:orientation="horizontal"
                         android:gravity="center"
-                        android:padding="8dp"
+                        android:paddingVertical="6dp"
                         android:background="?attr/selectableItemBackground">
 
                         <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@mipmap/xx"
                             app:tint="#666666" />
 
@@ -198,9 +202,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textColor="#666666"
-                            android:layout_marginStart="6dp" />
+                            android:layout_marginStart="5dp" />
                     </LinearLayout>
 
                     <!-- 收藏 -->
@@ -211,13 +215,13 @@
                         android:layout_weight="1"
                         android:orientation="horizontal"
                         android:gravity="center"
-                        android:padding="8dp"
+                        android:paddingVertical="6dp"
                         android:background="?attr/selectableItemBackground">
 
                         <ImageView
                             android:id="@+id/iv_favorite"
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@mipmap/sc"
                             app:tint="#666666" />
 
@@ -226,9 +230,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textColor="#666666"
-                            android:layout_marginStart="6dp" />
+                            android:layout_marginStart="5dp" />
                     </LinearLayout>
 
                     <!-- 浏览量 -->
@@ -238,11 +242,11 @@
                         android:layout_weight="1"
                         android:orientation="horizontal"
                         android:gravity="center"
-                        android:padding="8dp">
+                        android:paddingVertical="6dp">
 
                         <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@mipmap/lll"
                             app:tint="#666666" />
 
@@ -251,9 +255,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textColor="#666666"
-                            android:layout_marginStart="6dp" />
+                            android:layout_marginStart="5dp" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -261,7 +265,7 @@
             <!-- 分隔线 -->
             <View
                 android:layout_width="match_parent"
-                android:layout_height="8dp"
+                android:layout_height="6dp"
                 android:background="#F5F5F5" />
 
             <!-- 评论区域 - 无边框 -->
@@ -270,15 +274,15 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:background="#FFFFFF"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="16dp">
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="12dp">
 
                 <!-- 评论标题 -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="评论"
-                    android:textSize="16sp"
+                    android:textSize="15sp"
                     android:textColor="#1A1A1A"
                     android:textStyle="bold" />
 
@@ -287,16 +291,16 @@
                     android:id="@+id/recycler_comments"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="10dp"
                     android:nestedScrollingEnabled="false" />
 
                 <!-- 空状态 -->
                 <TextView
                     android:id="@+id/tv_empty_comments"
                     android:layout_width="match_parent"
-                    android:layout_height="100dp"
+                    android:layout_height="80dp"
                     android:text="暂无评论,快来发表第一条评论吧~"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textColor="#999999"
                     android:gravity="center"
                     android:visibility="gone" />
@@ -305,7 +309,7 @@
             <!-- 底部间距 -->
             <View
                 android:layout_width="match_parent"
-                android:layout_height="16dp"
+                android:layout_height="12dp"
                 android:background="#F5F5F5" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -314,11 +318,11 @@
     <LinearLayout
         android:id="@+id/bottom_input_bar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="52dp"
         android:background="#FFFFFF"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="14dp"
         android:elevation="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -327,7 +331,7 @@
         <EditText
             android:id="@+id/et_comment_input"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_weight="1"
             android:background="@drawable/bg_comment_input"
             android:gravity="center_vertical"
@@ -341,8 +345,8 @@
 
         <ImageView
             android:id="@+id/iv_send_comment"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:layout_marginStart="8dp"
             android:contentDescription="发送评论"
             android:padding="8dp"
