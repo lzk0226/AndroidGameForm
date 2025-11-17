@@ -128,7 +128,7 @@
                     android:lineHeight="26dp"
                     android:layout_marginTop="12dp" />
 
-                <!-- 富文本内容 - 增大显示区域，去除水平内边距 -->
+                <!-- 富文本内容 -->
                 <WebView
                     android:id="@+id/web_view_content"
                     android:layout_width="match_parent"
@@ -207,7 +207,7 @@
                             android:layout_marginStart="5dp" />
                     </LinearLayout>
 
-                    <!-- 收藏 -->
+                    <!-- 收藏 - 只显示图标，不显示数量 -->
                     <LinearLayout
                         android:id="@+id/layout_favorite"
                         android:layout_width="0dp"
@@ -225,14 +225,7 @@
                             android:src="@mipmap/sc"
                             app:tint="#666666" />
 
-                        <TextView
-                            android:id="@+id/tv_favorite_count"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textSize="13sp"
-                            android:textColor="#666666"
-                            android:layout_marginStart="5dp" />
+                        <!-- 移除了收藏数量的 TextView -->
                     </LinearLayout>
 
                     <!-- 浏览量 -->

@@ -13,6 +13,7 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.gameform.Activity.UserListActivity;
+import com.app.gameform.Activity.UserProfileActivity;
 import com.app.gameform.R;
 import com.app.gameform.domain.UserFollow;
 import com.app.gameform.utils.ImageUtils;
@@ -50,7 +51,6 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         return new ViewHolder(view);
     }
 
-
     /**
      * 加载用户头像
      */
@@ -73,7 +73,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
 
         // 根据列表类型显示不同的用户信息
         if (listType == UserListActivity.TYPE_FOLLOWING) {
-            // 关注列表：显示被关注用户的信息
+            // 关注列表:显示被关注用户的信息
             holder.tvNickname.setText(user.getFollowingNickName());
             loadAvatar(holder.ivUserAvatar, user.getFollowingAvatar());
 
@@ -87,8 +87,13 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
                 }
             });
 
+            // ✅ 添加整个列表项的点击事件 - 跳转到被关注用户的详情页
+            holder.itemView.setOnClickListener(v -> {
+                UserProfileActivity.start(context, user.getFollowingId());
+            });
+
         } else {
-            // 粉丝列表：显示粉丝的信息
+            // 粉丝列表:显示粉丝的信息
             holder.tvNickname.setText(user.getFollowerNickName());
             loadAvatar(holder.ivUserAvatar, user.getFollowerAvatar());
 
@@ -100,6 +105,11 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
                 if (listener != null) {
                     listener.onFollowClick(user, position);
                 }
+            });
+
+            // ✅ 添加整个列表项的点击事件 - 跳转到粉丝的详情页
+            holder.itemView.setOnClickListener(v -> {
+                UserProfileActivity.start(context, user.getFollowerId());
             });
         }
     }
