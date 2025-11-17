@@ -1,5 +1,6 @@
 package com.app.gameform.Activity.Home;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -29,6 +30,29 @@ public class AddActivity extends BaseActivity {
         initViews();
         setupViewPager();
         setupBottomNavigation();
+
+        // 处理初始 Intent
+        handleIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // 当 Activity 已存在时,会调用此方法
+        handleIntent(intent);
+    }
+
+    /**
+     * 处理 Intent 参数,切换到指定选项卡
+     */
+    private void handleIntent(Intent intent) {
+        if (intent != null && intent.hasExtra("tab_position")) {
+            int tabPosition = intent.getIntExtra("tab_position", 0);
+            if (tabPosition >= 0 && tabPosition < 2) {
+                viewPager.setCurrentItem(tabPosition, false);
+            }
+        }
     }
 
     private void initViews() {

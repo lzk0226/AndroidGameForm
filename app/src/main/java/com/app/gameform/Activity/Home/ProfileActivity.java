@@ -45,7 +45,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
     private ImageView ivEdit;
     private CircleImageView ivAvatar;
 
-    // 新增：统计数据UI组件
+    // 新增:统计数据UI组件
     private CardView cvMyPosts;
     private CardView cvMyFollowing;
     private CardView cvMyFollowers;
@@ -57,7 +57,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
 
     private static final int REQUEST_CODE_EDIT_PROFILE = 1001;
 
-    // ⭐ 新增：标记是否已加载过数据，避免重复加载
+    // ⭐ 新增:标记是否已加载过数据,避免重复加载
     private boolean isDataLoaded = false;
     private User cachedUser = null; // 缓存用户信息
 
@@ -93,7 +93,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
         ivEdit = findViewById(R.id.ivEdit);
         ivAvatar = findViewById(R.id.ivAvatar);
 
-        // 新增：初始化统计卡片
+        // 新增:初始化统计卡片
         cvMyPosts = findViewById(R.id.cvMyPosts);
         cvMyFollowing = findViewById(R.id.cvMyFollowing);
         cvMyFollowers = findViewById(R.id.cvMyFollowers);
@@ -113,10 +113,8 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
         cvEditProfile.setOnClickListener(v -> navigateToEditProfile());
         ivEdit.setOnClickListener(v -> navigateToEditProfile());
 
-        // 新增：设置统计卡片点击事件
-        cvMyPosts.setOnClickListener(v ->
-                Toast.makeText(this, "我的帖子功能开发中", Toast.LENGTH_SHORT).show()
-        );
+        // 新增:设置统计卡片点击事件
+        cvMyPosts.setOnClickListener(v -> navigateToMyPosts());
         cvMyFollowing.setOnClickListener(v -> navigateToUserList(UserListActivity.TYPE_FOLLOWING));
         cvMyFollowers.setOnClickListener(v -> navigateToUserList(UserListActivity.TYPE_FOLLOWERS));
         cvMyFavorites.setOnClickListener(v -> navigateToFavorites());
@@ -150,7 +148,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
             isDataLoaded = false;
             cachedUser = null;
         } else {
-            // 已登录状态，加载用户信息
+            // 已登录状态,加载用户信息
             loadUserInfo();
         }
     }
@@ -184,7 +182,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
         String token = sharedPrefManager.getToken();
 
         if (userId == 0) {
-            // 用户ID无效，显示登录提示
+            // 用户ID无效,显示登录提示
             showLoginPrompt();
             return;
         }
@@ -195,11 +193,11 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
             return;
         }
 
-        // ⭐ 如果有缓存且已加载过，直接显示缓存数据
+        // ⭐ 如果有缓存且已加载过,直接显示缓存数据
         if (isDataLoaded && cachedUser != null) {
             displayUserInfo(cachedUser);
             showUserInfo();
-            // 静默刷新统计数据（不阻塞UI）
+            // 静默刷新统计数据(不阻塞UI)
             loadStatistics(token);
             return;
         }
@@ -221,8 +219,8 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
             @Override
             public void onError(String error) {
                 runOnUiThread(() -> {
-                    // 如果获取用户信息失败，可能是token过期，显示登录提示
-                    Toast.makeText(ProfileActivity.this, "获取用户信息失败，请重新登录", Toast.LENGTH_SHORT).show();
+                    // 如果获取用户信息失败,可能是token过期,显示登录提示
+                    Toast.makeText(ProfileActivity.this, "获取用户信息失败,请重新登录", Toast.LENGTH_SHORT).show();
                     clearUserData();
                     showLoginPrompt();
                 });
@@ -234,7 +232,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
      * 显示用户信息
      */
     private void displayUserInfo(User user) {
-        // 昵称在上面，用户名在下面
+        // 昵称在上面,用户名在下面
         tvNickname.setText(user.getNickName());
         tvUsername.setText(user.getUserName());
 
@@ -367,6 +365,18 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
     }
 
     /**
+     * 跳转到我的帖子(已发布)
+     */
+    private void navigateToMyPosts() {
+        Intent intent = new Intent(this, AddActivity.class);
+        intent.putExtra("tab_position", 1); // 1 表示"已发布"选项卡
+        // 使用 FLAG_ACTIVITY_CLEAR_TOP 和 FLAG_ACTIVITY_SINGLE_TOP
+        // 如果 AddActivity 已存在,则复用它并调用 onNewIntent
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+    }
+
+    /**
      * 跳转到用户列表页面
      */
     private void navigateToUserList(int listType) {
@@ -412,8 +422,8 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_EDIT_PROFILE && resultCode == RESULT_OK) {
-            // 编辑个人信息成功后，强制重新加载用户信息
-            isDataLoaded = false; // 清除标记，强制刷新
+            // 编辑个人信息成功后,强制重新加载用户信息
+            isDataLoaded = false; // 清除标记,强制刷新
             cachedUser = null;
             loadUserInfo();
         }
@@ -423,17 +433,17 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
     protected void onResume() {
         super.onResume();
         // ⭐ 页面重新显示时检查登录状态
-        // 如果已有缓存数据，只刷新统计数据，不重新加载用户信息
+        // 如果已有缓存数据,只刷新统计数据,不重新加载用户信息
         String token = sharedPrefManager.getToken();
 
         if (TextUtils.isEmpty(token)) {
             // 未登录状态
             showLoginPrompt();
         } else if (isDataLoaded && cachedUser != null) {
-            // 已有缓存，只刷新统计数据
+            // 已有缓存,只刷新统计数据
             loadStatistics(token);
         } else {
-            // 没有缓存，加载完整数据
+            // 没有缓存,加载完整数据
             loadUserInfo();
         }
     }
@@ -441,7 +451,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
     // ⭐ 实现 TokenChangeListener 接口
     @Override
     public void onTokenChanged(String newToken) {
-        // Token 更新后，静默刷新数据
+        // Token 更新后,静默刷新数据
         runOnUiThread(() -> {
             if (isDataLoaded && cachedUser != null) {
                 // 只刷新统计数据
@@ -452,7 +462,7 @@ public class ProfileActivity extends BaseActivity implements SharedPrefManager.T
 
     @Override
     public void onUserLoggedOut() {
-        // 用户登出后，清除UI
+        // 用户登出后,清除UI
         runOnUiThread(() -> {
             showLoginPrompt();
         });
